@@ -1,10 +1,10 @@
 package Script::SXC::Reader;
 use Moose;
-use Carp    qw( croak );
+use Carp qw( croak );
 
 use Script::SXC::Types qw( Str HashRef );
 
-use aliased 'Script::SXC::Reader::Stream',          'StreamClass';
+use aliased 'Script::SXC::Reader::Stream', 'StreamClass';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;

@@ -12,7 +12,8 @@ use Method::Signatures;
 
 with 'Script::SXC::Reader::Source';
 
-coerce SourceObject, from ScalarRef, via { CLASS->new(lines => $$_) };
+coerce SourceObject, from ScalarRef, 
+    via { CLASS->new(lines => $$_) };
 
 has lines => (
     metaclass   => 'Collection::Array',
@@ -27,13 +28,21 @@ has lines => (
 );
 
 method next_line {
+
+    unless ($self->has_line_number) {
+        $self->line_number(1);
+    }
+
     if ($self->end_of_stream) {
         $self->reset_line_number;
-        $self->line_content($self->get_line_at_index(0));
+        $self->clear_line_content;
         return undef;
     }
+
     $self->inc_line_number;
-    return $self->get_line_at_index($self->line_number - 1);
+    $self->line_content($self->get_line_at_index($self->line_number - 1));
+
+    return $self->line_content;
 };
 
 method end_of_stream { $self->line_number >= $self->line_count };
