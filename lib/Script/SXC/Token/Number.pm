@@ -43,13 +43,13 @@ method match_regex {
             )
           |                     # integer and float
             (?:                 # 24_800.30
-                \d+[_\d]+\d+
+                [1-9][_\d]+\d
                 |               # 24.30
-                \d+
+                [1-9]\d*
             )
             (?:\.\d+)?
         )
-    /xi;
+    /xi
 };
 
 method build_tokens ($value) {

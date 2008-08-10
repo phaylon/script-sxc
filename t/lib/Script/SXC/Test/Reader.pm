@@ -168,7 +168,7 @@ sub number_tokens: Tests {
         my $self = self;
 
         throws_ok { $self->to_tokens('0b1021') } 'Script::SXC::Exception::ParseError',
-            'invalid binary number throws exception';
+            'invalid binary number throws parse error';
     }
 
     {   # hex
@@ -189,7 +189,7 @@ sub number_tokens: Tests {
         my $self = self;
 
         throws_ok { $self->to_tokens('0xPONY') } 'Script::SXC::Exception::ParseError',
-            'invalid hexadecimal number throws exception';
+            'invalid hexadecimal number throws parse error';
     }
 
     {   # oct
@@ -201,6 +201,16 @@ sub number_tokens: Tests {
         explain 'negative oct token: ', dump my $negoct = self->to_tokens('-0666');
         isa_ok $negoct, 'Script::SXC::Token::Number';
         is $negoct->value, -0666, 'correct negative oct number value';
+
+        # complex oct
+        explain 'complex oct token: ', dump my $coct = self->to_tokens('07_55');
+        isa_ok $coct, 'Script::SXC::Token::Number';
+        is $coct->value, 07_55, 'correct complex oct number value';
+
+        my $self = self;
+
+        throws_ok { $self->to_tokens('08') } 'Script::SXC::Exception::ParseError',
+            'invalid octal number throws parse error';
     }
 }
 
@@ -209,6 +219,21 @@ sub keyword_tokens: Tests {
     explain 'keyword token: ', dump my $keyword = self->to_tokens(':foo23-bar');
     isa_ok $keyword, 'Script::SXC::Token::Keyword';
     is $keyword->value, 'foo23-bar', 'correct keyword value';
+
+    my $self = self;
+
+    throws_ok { $self->to_tokens(':23') } 'Script::SXC::Exception::ParseError',
+        'keyword starting with digit throws parse error';
+    throws_ok { $self->to_tokens(':foo.bar') } 'Script::SXC::Exception::ParseError',
+        'keyword containing dot throws parse error';
+    throws_ok { $self->to_tokens(':foo(bar') } 'Script::SXC::Exception::ParseError',
+        'keyword containing parenthesis throws parse error';
+    throws_ok { $self->to_tokens(':foo[bar') } 'Script::SXC::Exception::ParseError',
+        'keyword containing square brackets throws parse error';
+    throws_ok { $self->to_tokens(':foo:bar') } 'Script::SXC::Exception::ParseError',
+        'keyword containing double colon throws parse error';
+    throws_ok { $self->to_tokens('::foobar') } 'Script::SXC::Exception::ParseError',
+        'keyword containing double colon at beginning throws parse error';
 }
 
 sub character_tokens: Tests {
@@ -230,6 +255,14 @@ sub character_tokens: Tests {
         isa_ok $sp, 'Script::SXC::Token::Character';
         is $sp->value, ' ', 'space character value correct';
     }
+
+    my $self = self;
+
+    throws_ok { $self->to_tokens('#\wehopethiskeydoesnotexistanydaysoon') }
+        'Script::SXC::Exception::ParseError',
+        'nonexistant character name throws parse error';
+    is $@->type, 'unknown_char', 'parse error type hints at unknown character name';
+    like "$@", qr/character/i, 'parse error message looks good';
 }
 
 sub boolean_tokens: Tests {
@@ -249,6 +282,11 @@ sub boolean_tokens: Tests {
         isa_ok $tok, 'Script::SXC::Token::Boolean';
         is $tok->value, $tests{ $expr }, "boolean token value for $expr correct";
     }
+
+    my $self = self;
+
+    throws_ok { $self->to_tokens('#foo') } 'Script::SXC::Exception::ParseError',
+        'unknown boolean specification throws parse error';
 }
 
 sub comment_tokens: Tests {

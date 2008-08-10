@@ -51,7 +51,7 @@ method build_tokens ($value, $stream) {
         ParseError->throw(
             type                => 'unknown_char',
             message             => "Don't know how to handle character specification '$spec'",
-            line_number         => $stream->line_number,
+            line_number         => $stream->source_line_number,
             source_description  => $stream->source_description,
         );
     }
