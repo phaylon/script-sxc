@@ -6,11 +6,19 @@ use Data::Dump qw( dump );
 
 use Script::SXC::Reader::Types qw( SourceObject Str TokenObject );
 
-use aliased 'Script::SXC::Reader::Source::String',  'StringSourceClass';
-use aliased 'Script::SXC::Token::Symbol',           'SymbolTokenClass';
-use aliased 'Script::SXC::Token::Whitespace',       'WhitespaceTokenClass';
-use aliased 'Script::SXC::Token::Number',           'NumberTokenClass';
-use aliased 'Script::SXC::Token::Keyword',          'KeywordTokenClass';
+use aliased 'Script::SXC::Reader::Source::String', 'StringSourceClass';
+
+use aliased 'Script::SXC::Token::Symbol',       'SymbolTokenClass';
+use aliased 'Script::SXC::Token::Whitespace',   'WhitespaceTokenClass';
+use aliased 'Script::SXC::Token::Number',       'NumberTokenClass';
+use aliased 'Script::SXC::Token::Keyword',      'KeywordTokenClass';
+use aliased 'Script::SXC::Token::Character',    'CharacterTokenClass';
+use aliased 'Script::SXC::Token::Boolean',      'BooleanTokenClass';
+use aliased 'Script::SXC::Token::Comment',      'CommentTokenClass';
+use aliased 'Script::SXC::Token::CellOpen',     'CellOpenTokenClass';
+use aliased 'Script::SXC::Token::CellClose',    'CellCloseTokenClass';
+use aliased 'Script::SXC::Token::Quote',        'QuoteTokenClass';
+use aliased 'Script::SXC::Token::Unquote',      'UnquoteTokenClass';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;
@@ -69,6 +77,13 @@ method build_default_token_classes {
     return [
         NumberTokenClass,
         KeywordTokenClass,
+        BooleanTokenClass,
+        CharacterTokenClass,
+        CommentTokenClass,
+        QuoteTokenClass,
+        UnquoteTokenClass,
+        CellOpenTokenClass,
+        CellCloseTokenClass,
         SymbolTokenClass,
         WhitespaceTokenClass,
     ];

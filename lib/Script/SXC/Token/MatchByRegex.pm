@@ -15,7 +15,7 @@ sub match {
     # test if we match
     my $rx   = $self->match_regex;
     my $line = $stream->line_buffer;
-    $line =~ s{^($rx)(?=>\s|$)}{} or return undef;
+    $line =~ s{^($rx)}{} or return undef;
     $stream->line_buffer($line);
 
     # return tokens in array reference

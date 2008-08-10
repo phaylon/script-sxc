@@ -1,4 +1,4 @@
-package Script::SXC::Token::Keyword;
+package Script::SXC::Token::Unquote;
 use Moose;
 
 use Script::SXC::Types qw( Str );
@@ -11,26 +11,17 @@ with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
-method match_regex { 
-    qr/
-        :
-        (?:
-            [a-z]
-            [a-z0-9_-]*
-            [a-z0-9]
-          |
-            [a-z]
-        )
-    /xi
+method match_regex {
+    qr/ ,\@? /x
 };
 
 method build_tokens ($value) {
     my $class = ref($self) || $self;
-
-    # just strip double colon from beginning
-    $value =~ s/^://;
-
+    
+    # new token without modification
     return $class->new(value => $value);
 };
+
+method is_splicing { $self->value eq q{,@} };
 
 1;
