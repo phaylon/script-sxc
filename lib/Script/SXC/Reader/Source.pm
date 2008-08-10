@@ -18,7 +18,7 @@ coerce Str, from 'ArrayRef[Str]',
     via { join $/, @$_ };
 
 coerce 'ArrayRef[Str]', from Str, 
-    via { [ map { $_ . $/ } split /\n/ ] };
+    via { [ split "\n", $_ ] };
 
 has line_number => (
     metaclass   => 'Counter',
