@@ -2,6 +2,7 @@ package Script::SXC::Test::Reader;
 use strict;
 use parent 'Script::SXC::Test';
 use self;
+
 use CLASS;
 use Test::Most;
 use aliased 'Script::SXC::Reader', 'ReaderClass';
@@ -282,11 +283,6 @@ sub boolean_tokens: Tests {
         isa_ok $tok, 'Script::SXC::Token::Boolean';
         is $tok->value, $tests{ $expr }, "boolean token value for $expr correct";
     }
-
-    my $self = self;
-
-    throws_ok { $self->to_tokens('#foo') } 'Script::SXC::Exception::ParseError',
-        'unknown boolean specification throws parse error';
 }
 
 sub comment_tokens: Tests {
