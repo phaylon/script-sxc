@@ -13,6 +13,7 @@ has '+value' => (isa => Str);
 method match ($stream) {
     my $class = ref($self) || $self;
 
+    # fetch whitespaces off current line buffer
     my $line = $stream->line_buffer;
     return undef unless $line =~ s/^(\s+)//ms;
     $stream->line_buffer($line);
