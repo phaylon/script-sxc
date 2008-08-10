@@ -1,0 +1,22 @@
+
+    # regexes
+
+    (let [(foo "bar")
+          (rx  /a/i)
+      (match foo rx)
+
+
+
+    # strings
+
+    "foo $(bar) baz"
+    =>
+    (**str-append** "foo " bar " baz")
+
+
+
+    TODO:
+        - strings
+        - regexes
+        - builtins (**foo**)
+        - dot

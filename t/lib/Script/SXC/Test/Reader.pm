@@ -336,4 +336,20 @@ sub quote_tokens: Tests {
     }
 }
 
+sub dot_token: Tests {
+
+    explain 'dot token: ', dump my $dot = self->to_tokens('.');
+    isa_ok $dot, 'Script::SXC::Token::Dot';
+    is $dot->value, '.', 'dot token has correct value';
+
+    explain 'pair token: ', dump my @pair = self->to_tokens('(foo . bar)');
+    my @token_classes = qw( CellOpen Symbol Whitespace Dot Whitespace Symbol CellClose );
+    is scalar(@pair), scalar(@token_classes), 'pair parses to correct number of tokens';
+    isa_ok $pair[ $_ ], 'Script::SXC::Token::' . $token_classes[ $_ ]
+        for 0 .. $#token_classes;
+    is $pair[1]->value, 'foo', 'first symbol token has correct value';
+    is $pair[3]->value, '.', 'dot token has correct value';
+    is $pair[5]->value, 'bar', 'second symbol token has correct value';
+}
+
 1;

@@ -19,6 +19,7 @@ use aliased 'Script::SXC::Token::CellOpen',     'CellOpenTokenClass';
 use aliased 'Script::SXC::Token::CellClose',    'CellCloseTokenClass';
 use aliased 'Script::SXC::Token::Quote',        'QuoteTokenClass';
 use aliased 'Script::SXC::Token::Unquote',      'UnquoteTokenClass';
+use aliased 'Script::SXC::Token::Dot',          'DotTokenClass';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;
@@ -84,6 +85,7 @@ method build_default_token_classes {
         UnquoteTokenClass,
         CellOpenTokenClass,
         CellCloseTokenClass,
+        DotTokenClass,
         SymbolTokenClass,
         WhitespaceTokenClass,
     ];
