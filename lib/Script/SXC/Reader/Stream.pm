@@ -6,6 +6,7 @@ use Data::Dump qw( dump );
 
 use Script::SXC::Reader::Types qw( SourceObject Str TokenObject );
 
+use aliased 'Script::SXC::Exception::ParseError';
 use aliased 'Script::SXC::Reader::Source::String', 'StringSourceClass';
 
 use aliased 'Script::SXC::Token::Symbol',       'SymbolTokenClass';
@@ -141,10 +142,12 @@ method next_token {
         }
 
         # we didn't know what to do with the rest of the content
-        die sprintf "Parse Error (%s line %d): %s\n",
-            $self->source_description,
-            $self->source_line_number,
-            $self->line_buffer;
+        ParseError->throw(
+            type                => 'cannot_parse',
+            message             => sprintf('Unable to parse: ' . $self->line_buffer),
+            line_number         => $self->source_line_number,
+            source_description  => $self->source_description,
+        );
     }
 };
 

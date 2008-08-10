@@ -6,20 +6,18 @@ use Script::SXC::Types qw( Str );
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
-with 'Script::SXC::Token::MatchByRegex';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
-method match_regex { 
-    qr/\s+/ms;
-};
-
-method build_tokens ($value) {
+method match ($stream) {
     my $class = ref($self) || $self;
 
-    # no transformation required
-    return $class->new(value => $value);
+    my $line = $stream->line_buffer;
+    return undef unless $line =~ s/^(\s+)//ms;
+    $stream->line_buffer($line);
+
+    return [ $class->new(value => $1) ];
 };
 
 1;

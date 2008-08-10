@@ -12,7 +12,7 @@ with 'Script::SXC::Token';
 has '+value' => (isa => Str);
 
 method match_regex {
-    qr/ ,\@? /x
+    [',@', ',']
 };
 
 method build_tokens ($value) {

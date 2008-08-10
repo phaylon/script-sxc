@@ -13,20 +13,38 @@ has '+value' => (isa => Num);
 
 method match_regex { 
     qr/
-        [+-]?
-        (?:
-            0[xb]
-            (?:
+        [+-]?                   # signedness
+        (?:                     # octal
+            0
+            (?:                 # 07_55
+                [0-7]
+                [0-7_]*
+                [0-7]
+              |                 # 07
+                [0-7]
+            )
+          |                     # binary
+            0b
+            (?:                 # 0b0010_1110
+                [01]
+                [01_]*
+                [01]
+              |                 # 0b1
+                [01]
+            )
+          |                     # hexadecimal
+            0x
+            (?:                 # 0xDEAD_BEEF
                 [\da-f]
                 [\da-f_]*
                 [\da-f]
-              |  
+              |                 # 0xF
                 [\da-f]+
             )
-          |
-            (?:
+          |                     # integer and float
+            (?:                 # 24_800.30
                 \d+[_\d]+\d+
-                |
+                |               # 24.30
                 \d+
             )
             (?:\.\d+)?

@@ -62,6 +62,14 @@ sub symbol_tokens: Tests {
     is $symbol->value, 'foo', 'correct symbol value';
     is $symbol->line_number, 1, 'correct line number';
     is $symbol->source_description, '(scalar)', 'correct source description';
+
+    my $self = self;
+    throws_ok { $self->to_tokens('23foo') } 
+        'Script::SXC::Exception::ParseError',
+        'symbol that tries to start with number throws parse error';
+    is $@->line_number, 1, 'symbol parse error has correct line number';
+    is $@->type, 'cannot_parse', 'symbol parse error has correct type';
+    like "$@", qr/Unable to parse/i, 'exception error message seems ok';
 }
 
 sub whitespace_tokens: Tests {
@@ -85,8 +93,6 @@ sub whitespace_tokens: Tests {
             for @ws;
         is $_->value, " ", 'correct tabular whitespace value'
             for @ws;
-        is $ws[0]->line_number, 1, 'first line number correct';
-        is $ws[1]->line_number, 2, 'second line number correct';
     }
 }
 
@@ -111,6 +117,11 @@ sub number_tokens: Tests {
         explain 'complex integer token: ', dump my $cint = self->to_tokens('-1_500.30');
         isa_ok $cint, 'Script::SXC::Token::Number';
         is $cint->value, '-1500.3', 'correct complex integer number value';
+
+        my $self = self;
+
+        throws_ok { $self->to_tokens('15_') } 'Script::SXC::Exception::ParseError',
+            'number ending with _ delimiter throws parse error';
     }
 
     {   # floats
@@ -125,6 +136,13 @@ sub number_tokens: Tests {
         explain 'complex float token: ', dump my $cfloat = self->to_tokens('+1_500.23');
         isa_ok $cfloat, 'Script::SXC::Token::Number';
         is $cfloat->value, '1500.23', 'correct complex float number value';
+
+        my $self = self;
+    
+        throws_ok { $self->to_tokens('15.2.3') } 'Script::SXC::Exception::ParseError',
+            'float with two commas throws parse error';
+        throws_ok { $self->to_tokens('14_.23') } 'Script::SXC::Exception::ParseError',
+            'float with _ delimiter before comma throws parse error';
     }
 
     {   # bin
@@ -141,6 +159,16 @@ sub number_tokens: Tests {
         explain 'complex bin token: ', dump my $cbin = self->to_tokens('0b11_10');
         isa_ok $cbin, 'Script::SXC::Token::Number';
         is $cbin->value, 0b1110, 'correct complex bin number value';
+
+        # trailing zeroes
+        explain 'trailing zeroes bin token: ', dump my $tzbin = self->to_tokens('0b0010');
+        isa_ok $tzbin, 'Script::SXC::Token::Number';
+        is $tzbin->value, 0b10, 'trailing zeroes are ignored for binary tokens';
+
+        my $self = self;
+
+        throws_ok { $self->to_tokens('0b1021') } 'Script::SXC::Exception::ParseError',
+            'invalid binary number throws exception';
     }
 
     {   # hex
@@ -157,6 +185,11 @@ sub number_tokens: Tests {
         explain 'complex hex token: ', dump my $chex = self->to_tokens('0xFF_FF');
         isa_ok $chex, 'Script::SXC::Token::Number';
         is $chex->value, 0xFFFF, 'correct complex hex number value';
+
+        my $self = self;
+
+        throws_ok { $self->to_tokens('0xPONY') } 'Script::SXC::Exception::ParseError',
+            'invalid hexadecimal number throws exception';
     }
 
     {   # oct

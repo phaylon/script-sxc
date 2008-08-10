@@ -3,6 +3,8 @@ use Moose;
 
 use Script::SXC::Types qw( Str );
 
+use aliased 'Script::SXC::Exception::ParseError';
+
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
@@ -26,7 +28,7 @@ method match_regex {
     /xi
 };
 
-method build_tokens ($value) {
+method build_tokens ($value, $stream) {
     my $class = ref($self) || $self;
     
     # normalise char name
@@ -46,7 +48,12 @@ method build_tokens ($value) {
 
     # no idea
     else {
-        die "Parse Error: $value\n"; # FIXME
+        ParseError->throw(
+            type                => 'unknown_char',
+            message             => "Don't know how to handle character specification '$spec'",
+            line_number         => $stream->line_number,
+            source_description  => $stream->source_description,
+        );
     }
 
     # return token

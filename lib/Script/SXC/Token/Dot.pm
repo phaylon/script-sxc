@@ -9,7 +9,7 @@ use Method::Signatures;
 extends 'Script::SXC::Token::Symbol';
 
 method match_regex {
-    qr/ \. /x
+    '.'
 };
 
 method build_tokens ($value) {
