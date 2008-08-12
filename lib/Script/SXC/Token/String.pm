@@ -1,4 +1,4 @@
-package Script::SXC::Token::Symbol;
+package Script::SXC::Token::String;
 use Moose;
 
 use Script::SXC::Types qw( Str );
@@ -6,22 +6,18 @@ use Script::SXC::Types qw( Str );
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
-with 'Script::SXC::Token::MatchByRegex';
-with 'Script::SXC::Token';
+extends 'Script::SXC::Token::Symbol';
 
 has '+value' => (isa => Str);
 
-method match_regex { 
-    qr/
-        [^\s()\[\]\{\[#"';\d:]
-        [^\s()\[\]\{\[#";]+
-    /x 
+method match_regex {
+    qr/" .* (?<! \\ ) "/xsm;
 };
 
 method build_tokens ($value) {
     my $class = ref($self) || $self;
-
-    # no transformations required
+    
+    # new token without modification
     return $class->new(value => $value);
 };
 

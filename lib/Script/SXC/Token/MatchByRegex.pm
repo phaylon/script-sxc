@@ -9,6 +9,7 @@ requires qw(
     build_tokens
 );
 
+#method match ($stream) {
 sub match {
     my ($self, $stream) = @_;
 

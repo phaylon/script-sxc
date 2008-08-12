@@ -22,6 +22,12 @@ use aliased 'Script::SXC::Token::CellClose',    'CellCloseTokenClass';
 use aliased 'Script::SXC::Token::Quote',        'QuoteTokenClass';
 use aliased 'Script::SXC::Token::Unquote',      'UnquoteTokenClass';
 use aliased 'Script::SXC::Token::Dot',          'DotTokenClass';
+use aliased 'Script::SXC::Token::String',       'StringTokenClass';
+
+use aliased 'Script::SXC::Token::Invalid::String',       'InvalidStringTokenClass';
+use aliased 'Script::SXC::Token::Invalid::Number',       'InvalidNumberTokenClass';
+use aliased 'Script::SXC::Token::Invalid::Keyword',      'InvalidKeywordTokenClass';
+use aliased 'Script::SXC::Token::Invalid::Boolean',      'InvalidBooleanTokenClass';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;
@@ -79,8 +85,13 @@ method build_default_token_classes {
 
     return [
         NumberTokenClass,
+        InvalidNumberTokenClass,
+        StringTokenClass,
+        InvalidStringTokenClass,
         KeywordTokenClass,
+        InvalidKeywordTokenClass,
         BooleanTokenClass,
+        InvalidBooleanTokenClass,
         CharacterTokenClass,
         CommentTokenClass,
         QuoteTokenClass,
