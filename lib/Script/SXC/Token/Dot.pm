@@ -7,6 +7,7 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 extends 'Script::SXC::Token::Symbol';
+with    'Script::SXC::Token::DirectTransform';
 
 method match_regex {
     '.'
@@ -18,5 +19,7 @@ method build_tokens ($value) {
     # new token without modification
     return $class->new(value => $value);
 };
+
+method tree_item_class { 'Script::SXC::Tree::Dot' };
 
 1;

@@ -9,6 +9,7 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 with 'Script::SXC::Token::MatchByRegex';
+with 'Script::SXC::Token::NoTransform';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Bool);

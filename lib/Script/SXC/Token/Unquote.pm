@@ -24,4 +24,8 @@ method build_tokens ($value) {
 
 method is_splicing { $self->value eq q{,@} };
 
+method transform ($stream) {
+    # unquote next item
+};
+
 1;

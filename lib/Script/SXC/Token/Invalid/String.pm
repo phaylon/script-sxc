@@ -9,6 +9,7 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 extends 'Script::SXC::Token::Symbol';
+with    'Script::SXC::Token::NoTransform';
 
 has '+value' => (isa => Str);
 

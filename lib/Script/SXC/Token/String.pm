@@ -21,4 +21,8 @@ method build_tokens ($value) {
     return $class->new(value => $value);
 };
 
+method transform {
+
+};
+
 1;

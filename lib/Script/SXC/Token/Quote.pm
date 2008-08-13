@@ -24,4 +24,8 @@ method build_tokens ($value) {
 
 method is_quasiquote { $self->value eq q{`} };
 
+method transform ($stream) {
+    # quote next item
+};
+
 1;

@@ -22,4 +22,8 @@ method build_tokens ($value) {
     return $class->new(value => $value);
 };
 
+method transform ($stream) {
+    # build list until cellclose
+};
+
 1;

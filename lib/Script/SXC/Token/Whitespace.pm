@@ -6,6 +6,7 @@ use Script::SXC::Types qw( Str );
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
+with 'Script::SXC::Token::EmptyTransform';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);

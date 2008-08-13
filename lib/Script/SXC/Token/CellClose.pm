@@ -3,6 +3,8 @@ use Moose;
 
 use Script::SXC::Types qw( Str );
 
+use aliased 'Script::SXC::Exception::ParseError';
+
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
@@ -20,6 +22,16 @@ method build_tokens ($value) {
     
     # new token without modification
     return $class->new(value => $value);
+};
+
+method transform {
+
+    ParseError->throw(
+        type                => 'unexpected_close',
+        message             => sprintf('Unexpected closing parenthesis \'%s\' found', $self->value),
+        line_number         => $self->line_number,
+        source_description  => $self->source_description,
+    );
 };
 
 1;

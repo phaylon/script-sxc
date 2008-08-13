@@ -9,6 +9,7 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 with 'Script::SXC::Token::MatchByRegex';
+with 'Script::SXC::Token::DirectTransform';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
@@ -59,5 +60,7 @@ method build_tokens ($value, $stream) {
     # return token
     return $class->new(value => $value);
 };
+
+method tree_item_class { 'Script::SXC::Tree::String' };
 
 1;

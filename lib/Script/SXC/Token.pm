@@ -5,23 +5,16 @@ use Script::SXC::Types qw( Int Str );
 
 use namespace::clean -except => 'meta';
 
+with 'Script::SXC::SourcePosition';
+
 requires qw(
     match
+    transform
 );
 
 has value => (
     is          => 'rw',
     required    => 1,
-);
-
-has line_number => (
-    is          => 'rw',
-    isa         => Int,
-);
-
-has source_description => (
-    is          => 'rw',
-    isa         => Str,
 );
 
 around match => sub {

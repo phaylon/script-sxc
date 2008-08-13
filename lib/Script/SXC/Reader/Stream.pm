@@ -29,6 +29,8 @@ use aliased 'Script::SXC::Token::Invalid::Number',       'InvalidNumberTokenClas
 use aliased 'Script::SXC::Token::Invalid::Keyword',      'InvalidKeywordTokenClass';
 use aliased 'Script::SXC::Token::Invalid::Boolean',      'InvalidBooleanTokenClass';
 
+use aliased 'Script::SXC::Tree', 'TreeClass';
+
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
@@ -173,6 +175,18 @@ method all {
 
     # return either all or just the first token
     return wantarray ? @tokens : shift @tokens;
+};
+
+method transform {
+    my @items;
+
+    # transform stream
+    while (my $token = $self->next_token) {
+        push @items, $token->transform($self);
+    }
+
+    # create tree
+    my $tree = TreeClass->new(contents => \@items);
 };
 
 1;

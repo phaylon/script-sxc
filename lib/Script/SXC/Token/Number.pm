@@ -7,6 +7,7 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 with 'Script::SXC::Token::MatchByRegex';
+with 'Script::SXC::Token::DirectTransform';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Num);
@@ -84,5 +85,7 @@ method build_tokens ($value) {
     # return number, force coercion to num context
     return $class->new(value => 0+$value);
 };
+
+method tree_item_class { 'Script::SXC::Tree::Number' };
 
 1;

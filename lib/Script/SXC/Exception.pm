@@ -9,20 +9,12 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 use overload '""' => sub { (shift)->error_message }, fallback => 1;
 
+with 'Script::SXC::SourcePosition';
+
 has message => (
     is          => 'rw',
     isa         => Str,
     required    => 1,
-);
-
-has line_number => (
-    is          => 'rw',
-    isa         => Int,
-);
-
-has source_description => (
-    is          => 'rw',
-    isa         => Str,
 );
 
 method throw (%args) {
