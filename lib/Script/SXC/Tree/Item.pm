@@ -1,7 +1,7 @@
 package Script::SXC::Tree::Item;
 use Moose::Role;
 
-use aliased 'Script::SXC::SourcePosition', 'SourcePositionRole';
+use constant 'SourcePositionRole', 'Script::SXC::SourcePosition';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;

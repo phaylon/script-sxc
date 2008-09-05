@@ -1,7 +1,6 @@
 package Script::SXC::Reader::Stream;
 use Moose;
 use MooseX::AttributeHelpers;
-use MooseX::Types;
 
 use Data::Dump qw( dump );
 
