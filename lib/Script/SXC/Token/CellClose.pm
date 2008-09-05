@@ -8,13 +8,16 @@ use aliased 'Script::SXC::Exception::ParseError';
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
+my $CloseParens = ']';
+my $CloseSquare = ')';
+
 with 'Script::SXC::Token::MatchByRegex';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
 method match_regex {
-    [qw/ ) ] /]
+    [$CloseParens, $CloseSquare];
 };
 
 method build_tokens ($value) {

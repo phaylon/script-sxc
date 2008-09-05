@@ -1,13 +1,13 @@
 package Script::SXC::Reader::Stream;
 use Moose;
 use MooseX::AttributeHelpers;
+use MooseX::Types;
 
 use Data::Dump qw( dump );
 
 use Script::SXC::Reader::Types qw( SourceObject Str TokenObject );
 
 use aliased 'Script::SXC::Exception::ParseError';
-use aliased 'Script::SXC::Reader::Source::String', 'StringSourceClass';
 
 # token classes
 use aliased 'Script::SXC::Token::Symbol',       'SymbolTokenClass';

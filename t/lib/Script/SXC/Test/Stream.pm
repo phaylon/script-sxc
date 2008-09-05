@@ -10,16 +10,9 @@ use aliased 'Script::SXC::Reader',  'ReaderClass';
 use aliased 'Script::SXC::Tree',    'TreeClass';
 use Data::Dump qw( dump );
 
+use Script::SXC::Test::Util qw( assert_ok list_ok symbol_ok builtin_ok quote_ok );
+
 CLASS->mk_accessors(qw( reader ));
-
-{   # utility functions
-
-    sub assert_ok {
-        my ($msg, $val, @rest) = @_;
-        ok $val, $msg;
-        return wantarray ? ($val, @rest) : $val;
-    }
-}
 
 sub setup_reader: Test(startup) {
     self->reader(ReaderClass->new);
@@ -74,7 +67,7 @@ sub symbols: Tests {
     }
 
     {   # dot symbols
-        explain 'dot tree',
+        explain 'dot tree: ',
             dump assert_ok 'tree built ok',
             my $tree = self->transform('.');
         isa_ok $tree, TreeClass;
@@ -153,7 +146,7 @@ sub comments: Tests {
     {   # comment removal
         explain 'symbol with comment tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('foo ; bar ; baz');
+            my $tree = self->transform('foo; bar ; baz');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'only one item in tree with comments';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Symbol';
@@ -169,6 +162,120 @@ sub cells: Tests {
             'unexpected closing parens throws parse error';
         like $@, qr/unexpected closing parenthesis/i, 'error message looks good';
         like $@, qr/'\)'/, 'error message contains wrong parenthesis';
+        is $@->type, 'unexpected_close', 'thrown exception has correct parse error type';
+    }
+
+    {   # simple cell with symbol
+        explain 'list with symbol: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('(foo)');
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'tree contains one item';
+        isa_ok my $list = $tree->get_content_item(0), 'Script::SXC::Tree::List';
+        is $list->content_count, 1, 'list contains one item';
+        isa_ok my $item = $list->get_content_item(0), 'Script::SXC::Tree::Symbol';
+        is $item->value, 'foo', 'symbol in list has correct value';
+    }
+
+    {   # more complex tree
+        explain 'more complex tree: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('(foo [bar] baz)');
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'tree contains one item (should be list)';
+        isa_ok my $list = $tree->get_content_item(0), 'Script::SXC::Tree::List';
+        is $list->content_count, 3, 'list contains three items (should be symbol, list, symbol)';
+        my @items = @{ $list->contents };
+        isa_ok $items[0], 'Script::SXC::Tree::Symbol';
+        isa_ok $items[1], 'Script::SXC::Tree::List';
+        isa_ok $items[2], 'Script::SXC::Tree::Symbol';
+        is $items[0]->value, 'foo', 'first symbol has correct value';
+        is $items[2]->value, 'baz', 'last symbol has correct value';
+        is $items[1]->content_count, 1, 'sublist contains one item (should be symbol)';
+        isa_ok my $subitem = $items[1]->get_content_item(0), 'Script::SXC::Tree::Symbol';
+        is $subitem->value, 'bar', 'symbol in list has correct value';
+    }
+
+    {   
+        my $self = self;
+
+        # unexpected end of stream
+        throws_ok { $self->transform('(foo bar') } 'Script::SXC::Exception::ParseError',
+            'unexpected end throws parse error';
+        like $@, qr/unexpected end/i, 'error message seems ok';
+        like $@, qr/'\)'/, 'error message contains expected parenthesis';
+        is $@->type, 'unexpected_end', 'parse error has correct type';
+
+        # wrong closing parens
+        throws_ok { $self->transform('(foo]') } 'Script::SXC::Exception::ParseError',
+            'parenthesis mismatch throws parse error';
+        like $@, qr/expected/i, 'error message seems ok';
+        is $@->type, 'parenthesis_mismatch', 'parse error type correct';
+    }
+}
+
+sub quoting: Tests {
+
+    {   # simple quote
+        explain 'simple quote: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform(q/(foo 'bar)/);
+        is $tree->content_count, 1, 'tree contains one item';
+        isa_ok my $list = $tree->get_content_item(0), 'Script::SXC::Tree::List';
+        is $list->content_count, 2, 'list contains two items';
+        isa_ok $list->get_content_item(0), 'Script::SXC::Tree::Symbol';
+        is $list->get_content_item(0)->value, 'foo', 'first symbol has correct value';
+        isa_ok my $quote = $list->get_content_item(1), 'Script::SXC::Tree::List';
+        is $quote->content_count, 2, 'quote list contains symbol and one value';
+        isa_ok my $symbol = $quote->get_content_item(0), 'Script::SXC::Tree::Builtin';
+        isa_ok my $quoted = $quote->get_content_item(1), 'Script::SXC::Tree::Symbol';
+        isa_ok $symbol, 'Script::SXC::Tree::Symbol';
+        is $symbol->value, 'quote', 'symbol is quote builtin';
+        is $quoted->value, 'bar', 'quoted symbol has correct value';
+    }
+
+    {   # quasiquote and unquotes
+        explain 'quasiquote and unquotes: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform(q/(foo `[bar ,baz ,@(qux)])/);
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'tree has one item';
+        my $list = $tree->get_content_item(0);
+        list_ok $list, 'single list in tree',
+            content_count => 2,
+            content_test  => [
+                sub { symbol_ok $_, 'first symbol', value => 'foo' },
+                sub { 
+                    quote_ok $_, 'quasiquoted content',
+                        quote_name => 'quasiquote',
+                        quote_test => sub {
+                            list_ok $_, 'quoted list',
+                                content_count => 3,
+                                content_test  => [
+                                    sub { symbol_ok $_, 'first symbol in quoted list', value => 'bar' },
+                                    sub {
+                                        quote_ok $_, 'unquoted symbol',
+                                            quote_name => 'unquote',
+                                            quote_test => sub {
+                                                symbol_ok $_, 'second unquoted symbol in quoted list', 
+                                                    value => 'baz';
+                                            };
+                                    },
+                                    sub {
+                                        quote_ok $_, 'spliced unquoted application',
+                                            quote_name => 'unquote-splicing',
+                                            quote_test => sub {
+                                                list_ok $_, 'application',
+                                                    content_count => 1,
+                                                    content_test  => [
+                                                        sub { symbol_ok $_, 'third unquoted symbol', value => 'qux' },
+                                                    ];
+                                            };
+                                    },
+                                ];
+                        };
+                },
+            ];
     }
 }
 

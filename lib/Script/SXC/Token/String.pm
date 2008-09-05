@@ -22,7 +22,7 @@ method build_tokens ($value) {
 };
 
 method transform {
-
+    die "TODO\n";
 };
 
 1;

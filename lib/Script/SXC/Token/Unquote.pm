@@ -3,13 +3,19 @@ use Moose;
 
 use Script::SXC::Types qw( Str );
 
+use aliased 'Script::SXC::Tree::Builtin',   'BuiltinItemClass';
+use aliased 'Script::SXC::Tree::List',      'ListItemClass';
+
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 with 'Script::SXC::Token::MatchByRegex';
+with 'Script::SXC::Token::TransformNextItem';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
+
+my %UnquoteBuiltin = (',' => 'unquote', ',@' => 'unquote-splicing');
 
 method match_regex {
     [',@', ',']
@@ -24,8 +30,21 @@ method build_tokens ($value) {
 
 method is_splicing { $self->value eq q{,@} };
 
-method transform ($stream) {
-    # unquote next item
+method transform_item ($item) {
+    return ListItemClass->new_from_token(
+        $self,
+        contents => [
+            BuiltinItemClass->new_from_token(
+                $self,
+                value => $UnquoteBuiltin{ $self->value },
+            ),
+            $item,
+        ],
+    );
+};
+
+method end_of_stream_error_message {
+    $UnquoteBuiltin{ $self->value } . ' expected another item';
 };
 
 1;

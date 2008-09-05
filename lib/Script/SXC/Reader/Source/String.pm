@@ -11,9 +11,7 @@ use namespace::clean -except => 'meta';
 use Method::Signatures;
 
 with 'Script::SXC::Reader::Source';
-
-coerce SourceObject, from ScalarRef, 
-    via { CLASS->new(lines => $$_) };
+# original point of coercion
 
 has lines => (
     metaclass   => 'Collection::Array',

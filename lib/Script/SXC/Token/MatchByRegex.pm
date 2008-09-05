@@ -18,7 +18,7 @@ sub match {
     my $line = $stream->line_buffer;
 
     # only regex specifications get end markers
-    my $end  = (ref $rx eq 'Regexp') ? qr/(?=>\b|\s|\)|$)/ : qr//;
+    my $end  = (ref $rx eq 'Regexp') ? qr/(?=>\b|\s|\)|\]|;|$)/ : qr//;
 
     # string specifications get quoted
     $rx = qr/\Q$rx\E/ unless ref $rx;
