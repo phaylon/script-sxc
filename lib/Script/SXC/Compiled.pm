@@ -1,0 +1,71 @@
+package Script::SXC::Compiled;
+use Moose;
+use MooseX::AttributeHelpers;
+use MooseX::Method::Signatures;
+
+use Script::SXC::Types  qw( ArrayRef Bool Str );
+use Scalar::Util        qw( blessed );
+
+use namespace::clean -except => 'meta';
+
+has expressions => (
+    metaclass       => 'Collection::Array',
+    is              => 'rw',
+    isa             => ArrayRef,
+    required        => 1,
+    default         => sub { [] },
+    provides        => {
+        'push'          => 'add_expression',
+    },
+);
+
+has use_strict => (
+    is              => 'rw',
+    isa             => Bool,
+    default         => 1,
+);
+
+has use_warnings => (
+    is              => 'rw',
+    isa             => Bool,
+    default         => 0,
+);
+
+has pre_text => (
+    is              => 'rw',
+    isa             => Str,
+);
+
+method evaluate {
+
+    my $handler = $self->evaluated_callback;
+    my $value   = $handler->();         # the coderef allows zero-level gotos to work
+
+    return $value;
+};
+
+method evaluated_callback {
+    local $@;
+
+    my $body    = $self->get_full_body;
+    my $handler = eval sprintf 'sub { %s }', $body
+        or die "Could not compile Perl code: $@\n";
+
+    return $handler;
+};
+
+method get_full_body {
+    return join ';', 
+        ( $self->use_strict   ? 'use strict'          : () ),
+        ( $self->use_warnings ? 'use warnings'        : () ),
+        ( $self->pre_text     ? $self->pre_text . ';' : () ),
+        $self->get_body;
+};
+
+method get_body {
+    return join '; ', map { $_->render } @{ $self->expressions };
+};
+
+__PACKAGE__->meta->make_immutable;
+
+1;

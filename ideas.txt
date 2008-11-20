@@ -1,0 +1,11 @@
+
+    # Importing Generics
+    use Script::SXC::Module 'foobar'; # loads foobar.sxc, remembers generics locally in package
+    use Script::SXC::Generics 'quux'; # loads remembered and "quux" generics, installs them if
+                                      # not yet existing
+
+
+    (lambda (x :type Int :where (>= x 0))
+      (++ x))
+
+
