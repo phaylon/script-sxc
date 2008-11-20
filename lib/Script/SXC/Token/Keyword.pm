@@ -36,4 +36,6 @@ method build_tokens ($value) {
 
 method tree_item_class { 'Script::SXC::Tree::Keyword' };
 
+__PACKAGE__->meta->make_immutable;
+
 1;

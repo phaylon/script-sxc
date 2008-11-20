@@ -12,7 +12,7 @@ with 'Script::SXC::Token';
 
 has '+value' => (isa => Num);
 
-method match_regex { 
+method match_regex () { 
     qr/
         [+-]?                   # signedness
         (?:                     # octal
@@ -47,6 +47,8 @@ method match_regex {
                 [1-9][_\d]+\d
                 |               # 24.30
                 [1-9]\d*
+                |
+                0               # simple non-octal 0
             )
             (?:\.\d+)?
         )
@@ -86,6 +88,8 @@ method build_tokens ($value) {
     return $class->new(value => 0+$value);
 };
 
-method tree_item_class { 'Script::SXC::Tree::Number' };
+method tree_item_class () { 'Script::SXC::Tree::Number' };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

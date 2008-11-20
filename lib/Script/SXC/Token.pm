@@ -7,10 +7,10 @@ use namespace::clean -except => 'meta';
 
 with 'Script::SXC::SourcePosition';
 
-requires qw(
-    match
-    transform
-);
+#requires qw(
+#    match
+#    transform
+#);
 
 has value => (
     is          => 'rw',
@@ -30,6 +30,7 @@ around match => sub {
     do { 
         $_->line_number($stream->source_line_number);
         $_->source_description($stream->source_description);
+        $_->char_number($stream->current_char_number);
     } for @$match;
 
     # returned tokens

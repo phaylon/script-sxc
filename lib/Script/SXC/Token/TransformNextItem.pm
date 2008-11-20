@@ -6,10 +6,10 @@ use aliased 'Script::SXC::Exception::ParseError';
 use namespace::clean -except => 'meta';
 #use Method::Signatures;
 
-requires qw(
-    end_of_stream_error_message
-    transform_item
-);
+#requires qw(
+#    end_of_stream_error_message
+#    transform_item
+#);
 
 sub transform {
     my ($self, $stream) = @_;

@@ -39,4 +39,6 @@ method build_tokens ($value) {
 
 method tree_item_class { 'Script::SXC::Tree::Boolean' };
 
+__PACKAGE__->meta->make_immutable;
+
 1;

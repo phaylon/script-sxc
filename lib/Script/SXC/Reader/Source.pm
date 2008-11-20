@@ -2,17 +2,18 @@ package Script::SXC::Reader::Source;
 use Moose::Role;
 use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
+use MooseX::Method::Signatures;
 
 use Script::SXC::Types qw( Int Str );
 
+use signatures;
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
-requires qw( 
-    next_line
-    source_description
-    end_of_stream
-);
+#requires qw( 
+#    next_line
+#    source_description
+#    end_of_stream
+#);
 
 coerce Str, from 'ArrayRef[Str]', 
     via { join $/, @$_ };
@@ -33,6 +34,11 @@ has line_number => (
     predicate   => 'has_line_number',
 );
 
+has initial_line_length => (
+    is          => 'rw',
+    isa         => Int,
+);
+
 has line_content => (
     is          => 'rw',
     isa         => Str,
@@ -42,5 +48,9 @@ has line_content => (
     clearer     => 'clear_line_content',
     predicate   => 'has_line_content',
 );
+
+after next_line => sub ($self) {
+    $self->initial_line_length($self->has_line_content ? length($self->line_content) : 0);
+};
 
 1;

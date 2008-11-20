@@ -11,6 +11,8 @@ all_from        'lib/Script/SXC.pm';
 
 test_requires   'Test::Class';
 test_requires   'Test::Most';
+test_requires   'Class::Accessor::Fast';
+test_requires   'self';
 
 requires        'namespace::clean',         '0.08';
 requires        'Method::Signatures',       '0.02';

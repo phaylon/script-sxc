@@ -47,4 +47,6 @@ method end_of_stream_error_message {
     $QuoteBuiltin{ $self->value } . ' expected another item';
 };
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -15,7 +15,11 @@ has message => (
     is          => 'rw',
     isa         => Str,
     required    => 1,
+    builder     => 'build_default_message',
+    lazy        => 1,
 );
+
+method build_default_message { undef }
 
 method throw (%args) {
     my $class = ref($self) || $self;
@@ -30,5 +34,7 @@ method error_message {
           : ''),
         $self->message;
 };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

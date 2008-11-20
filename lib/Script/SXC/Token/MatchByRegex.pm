@@ -1,17 +1,17 @@
 package Script::SXC::Token::MatchByRegex;
 use Moose::Role;
+use MooseX::Method::Signatures;
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
-requires qw(
-    match_regex
-    build_tokens
-);
+#requires qw(
+#    match_regex
+#    build_tokens
+#);
 
-#method match ($stream) {
-sub match {
-    my ($self, $stream) = @_;
+method match ($stream) {
+#sub match {
+#    my ($self, $stream) = @_;
 
     # test if we match
     my $rx   = $self->match_regex;

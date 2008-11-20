@@ -11,8 +11,24 @@ use Sub::Exporter -setup => {
         symbol_ok
         builtin_ok
         quote_ok
+        string_ok
+        number_ok
     )],
 };
+
+sub number_ok {
+    my ($num, $val, $name) = @_;
+    local $Test::Builder::Level = 2;
+    isa_ok $num, 'Script::SXC::Tree::Number';
+    is $num->value, $val, "$name value correct";
+}
+
+sub string_ok {
+    my ($str, $val, $name) = @_;
+    local $Test::Builder::Level = 2;
+    isa_ok $str, 'Script::SXC::Tree::String';
+    is $str->value, $val, "$name value correct";
+}
 
 sub assert_ok {
     my ($msg, $val, @rest) = @_;

@@ -15,10 +15,15 @@ with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
-my %UnquoteBuiltin = (',' => 'unquote', ',@' => 'unquote-splicing');
+my $SymbolUnquote       = q(,);
+my $SymbolUnquoteSplice = q(,@);
+my %UnquoteBuiltin      = (
+    $SymbolUnquote          => 'unquote', 
+    $SymbolUnquoteSplice    => 'unquote-splicing',
+);
 
 method match_regex {
-    [',@', ',']
+    [$SymbolUnquoteSplice, $SymbolUnquote];
 };
 
 method build_tokens ($value) {
@@ -46,5 +51,7 @@ method transform_item ($item) {
 method end_of_stream_error_message {
     $UnquoteBuiltin{ $self->value } . ' expected another item';
 };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

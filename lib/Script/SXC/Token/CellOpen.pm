@@ -4,6 +4,7 @@ use Moose;
 use Script::SXC::Types qw( Str );
 
 use aliased 'Script::SXC::Exception::ParseError';
+use aliased 'Script::SXC::Exception::MissingClose';
 use aliased 'Script::SXC::Tree::List', 'ListClass';
 
 use namespace::clean -except => 'meta';
@@ -41,8 +42,7 @@ method transform ($stream) {
                 type                => 'parenthesis_mismatch',
                 message             => sprintf(q(Expected '%s' closing parenthesis but found '%s'),
                                         $MatchSet{ $self->value }, $token->value),
-                line_number         => $self->line_number,
-                source_description  => $self->source_description,
+                $self->source_information,
             ) unless $token->value eq $MatchSet{ $self->value };
 
             # return the tree with the items
@@ -57,13 +57,14 @@ method transform ($stream) {
     }
 
     # if we reach this point, a parens is missing
-    ParseError->throw(
+    MissingClose->throw(
         type                => 'unexpected_end',
         message             => sprintf(q(Unexpected end of input, missing a '%s' closing parenthesis),
                                 $MatchSet{ $self->value }),
-        line_number         => $self->line_number,
-        source_description  => $self->source_description,
+        $self->source_information,
     );
 };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

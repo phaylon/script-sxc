@@ -11,7 +11,9 @@ with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
-method match ($stream) {
+#method match ($stream) {
+sub match {
+    my ($self, $stream) = @_;
     my $class = ref($self) || $self;
 
     # the line needs to start with a semicolon for us to match
@@ -24,5 +26,7 @@ method match ($stream) {
     # return comment token
     return [ $token ];
 };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

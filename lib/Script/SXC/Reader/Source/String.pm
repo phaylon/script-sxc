@@ -51,4 +51,6 @@ method end_of_stream { $self->line_number >= $self->line_count };
 
 method source_description { '(scalar)' };
 
+__PACKAGE__->meta->make_immutable;
+
 1;

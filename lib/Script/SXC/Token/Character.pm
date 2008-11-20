@@ -63,4 +63,6 @@ method build_tokens ($value, $stream) {
 
 method tree_item_class { 'Script::SXC::Tree::String' };
 
+__PACKAGE__->meta->make_immutable;
+
 1;

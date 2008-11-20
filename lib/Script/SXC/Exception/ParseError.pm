@@ -12,4 +12,6 @@ has type => (
     isa         => Str,
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

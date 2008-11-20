@@ -4,7 +4,8 @@ use MooseX::AttributeHelpers;
 
 use Data::Dump qw( dump );
 
-use Script::SXC::Reader::Types qw( SourceObject Str TokenObject );
+use Script::SXC::Types          qw( TokenObject );
+use Script::SXC::Reader::Types  qw( SourceObject Str );
 
 use aliased 'Script::SXC::Exception::ParseError';
 
@@ -30,8 +31,10 @@ use aliased 'Script::SXC::Token::Invalid::Boolean',      'InvalidBooleanTokenCla
 
 use aliased 'Script::SXC::Tree', 'TreeClass';
 
+# FIXME what to use?
 use namespace::clean -except => 'meta';
 use Method::Signatures;
+#use MooseX::Method::Signatures;
 
 has source => (
     is          => 'rw',
@@ -39,11 +42,12 @@ has source => (
     coerce      => 1,
     required    => 1,
     handles     => {
-        'next_source_line'      => 'next_line',
-        'end_of_source_stream'  => 'end_of_stream',
-        'source_line_number'    => 'line_number',
-        'source_line_content'   => 'line_content',
-        'source_description'    => 'source_description',
+        'next_source_line'              => 'next_line',
+        'end_of_source_stream'          => 'end_of_stream',
+        'source_line_number'            => 'line_number',
+        'initial_source_line_length'    => 'initial_line_length',
+        'source_line_content'           => 'line_content',
+        'source_description'            => 'source_description',
     },
 );
 
@@ -59,6 +63,12 @@ has line_buffer => (
     predicate   => 'has_line_buffer',
     default     => '',
 );
+
+method current_char_number {
+    return $self->line_buffer 
+        ? ($self->initial_source_line_length - length($self->line_buffer))
+        : 0;
+};
 
 has token_buffer => (
     metaclass   => 'Collection::Array',
@@ -158,8 +168,7 @@ method next_token {
         ParseError->throw(
             type                => 'cannot_parse',
             message             => sprintf('Unable to parse: ' . $self->line_buffer),
-            line_number         => $self->source_line_number,
-            source_description  => $self->source_description,
+            $self->source_information,
         );
     }
 };
@@ -187,5 +196,7 @@ method transform {
     # create tree
     my $tree = TreeClass->new(contents => \@items);
 };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

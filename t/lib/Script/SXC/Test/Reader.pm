@@ -122,6 +122,13 @@ sub number_tokens: Tests {
         isa_ok $int, 'Script::SXC::Token::Number';
         is $int->value, 15, 'correct integer number value';
 
+        # zero
+        explain '0 integer token: ',
+            dump assert_ok 'zero integer parses',
+            my $zero = self->to_tokens('0');
+        isa_ok $zero, 'Script::SXC::Token::Number';
+        is $zero->value, 0, 'correct zero number value';
+
         # positive
         explain 'positive integer token: ', 
             dump assert_ok 'positive integer parses',

@@ -1,10 +1,13 @@
 package Script::SXC::Tree::Number;
 use Moose;
+use MooseX::Method::Signatures;
+
+use aliased 'Script::SXC::Compiled::Value', 'CompiledValue';
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
-with 'Script::SXC::Tree::Item';
-with 'Script::SXC::Tree::SingleValue';
+with 'Script::SXC::Tree::Constant';
+
+__PACKAGE__->meta->make_immutable;
 
 1;

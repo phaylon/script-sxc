@@ -10,7 +10,8 @@ use aliased 'Script::SXC::Reader',  'ReaderClass';
 use aliased 'Script::SXC::Tree',    'TreeClass';
 use Data::Dump qw( dump );
 
-use Script::SXC::Test::Util qw( assert_ok list_ok symbol_ok builtin_ok quote_ok );
+use Script::SXC::Test::Util 
+    qw( assert_ok list_ok symbol_ok builtin_ok quote_ok string_ok number_ok );
 
 CLASS->mk_accessors(qw( reader ));
 
@@ -126,6 +127,78 @@ sub strings: Tests {
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::String';
         is $item->value, ' ', 'string in character tree has correct value';
     }
+
+    {   # plain string
+        explain 'plain string: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('"xyz"');
+        isa_ok $tree, TreeClass;
+        my $str = $tree->get_content_item(0);
+        string_ok $str, 'xyz', 'plain string';
+    }
+
+    {   # string with var interpolation
+        explain 'string with var: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('"foo ${bar} baz"');
+        isa_ok $tree, TreeClass;
+        my $ls = $tree->get_content_item(0);
+        list_ok $ls, 'str-append application',
+            content_count => 4,
+            content_test  => [
+                sub { builtin_ok $_, 'string append builtin', value => 'str-append' },
+                sub { string_ok  $_, 'foo ', 'first plain string part' },
+                sub { symbol_ok  $_, 'interpolated symbol', value => 'bar' },
+                sub { string_ok  $_, ' baz', 'second plain string part' },
+            ];
+    }
+
+    {   # string with apply interpolation
+        explain 'string with apply: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('"foo $(join sep (list 1 2 3)) bar"');
+        isa_ok $tree, TreeClass;
+        my $ls = $tree->get_content_item(0);
+        list_ok $ls, 'str-append application for interpolation',
+            content_count => 4,
+            content_test  => [
+                sub { builtin_ok $_, 'string append builtin', value => 'str-append' },
+                sub { string_ok  $_, 'foo ', 'first plain string part' },
+                sub {
+                    list_ok $_, 'interpolated application',
+                        content_count => 3,
+                        content_test  => [
+                            sub { symbol_ok $_, 'application operand', value => 'join' },
+                            sub { symbol_ok $_, 'symbolic argument',   value => 'sep' },
+                            sub {
+                                list_ok $_, 'list argument',
+                                    content_count => 4,
+                                    content_test  => [
+                                        sub { symbol_ok $_, 'list constructor', value => 'list' },
+                                        sub { number_ok $_, 1, 'first number in list' },
+                                        sub { number_ok $_, 2, 'second number in list' },
+                                        sub { number_ok $_, 3, 'third number in list' },
+                                    ];
+                            },
+                        ];
+                },
+                sub { string_ok  $_, ' bar', 'second plain string part' },
+            ];
+    }
+
+    my $self = self;
+
+    throws_ok { $self->transform('"foo ${bar"') } 'Script::SXC::Exception::ParseError',
+        'unclosed var interpolation';
+    like $@, qr/variable interpolation/i, 'unclosed var interpolation message';
+
+    throws_ok { $self->transform('"foo $(bar"') } 'Script::SXC::Exception::ParseError',
+        'unclosed apply interpolation';
+    like $@, qr/applied interpolation/i, 'unclosed apply interpolation message';
+
+    throws_ok { $self->transform('"foo $(bar [baz)) qux"') } 'Script::SXC::Exception::ParseError',
+        'invalid apply expression';
+    like $@, qr/expected/i, 'invalid apply expression message';
 }
 
 sub booleans: Tests {

@@ -4,7 +4,7 @@ use Moose::Role;
 use namespace::clean -except => 'meta';
 use Method::Signatures;
 
-requires qw( tree_item_class );
+#requires qw( tree_item_class );
 
 method transform {
     my $item_class = $self->tree_item_class;

@@ -1,10 +1,10 @@
 package Script::SXC::Token::Symbol;
 use Moose;
+use MooseX::Method::Signatures;
 
 use Script::SXC::Types qw( Str );
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
 with 'Script::SXC::Token::MatchByRegex';
 with 'Script::SXC::Token::DirectTransform';
@@ -15,11 +15,11 @@ has '+value' => (isa => Str);
 method match_regex { 
     qr/
         [^\s()\[\]\{\[#"';\d:]
-        [^\s()\[\]\{\[#";]+
+        [^\s()\[\]\{\[#";]*
     /x 
 };
 
-method build_tokens ($value) {
+method build_tokens (Str $value) {
     my $class = ref($self) || $self;
 
     # no transformations required
@@ -27,5 +27,7 @@ method build_tokens ($value) {
 };
 
 method tree_item_class { 'Script::SXC::Tree::Symbol' };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -1,17 +1,19 @@
 package Script::SXC::Token::Whitespace;
 use Moose;
+use MooseX::Method::Signatures;
 
 use Script::SXC::Types qw( Str );
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
 with 'Script::SXC::Token::EmptyTransform';
 with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
-method match ($stream) {
+#method match ($stream) {
+sub match {
+    my ($self, $stream) = @_;
     my $class = ref($self) || $self;
 
     # fetch whitespaces off current line buffer
@@ -21,5 +23,7 @@ method match ($stream) {
 
     return [ $class->new(value => $1) ];
 };
+
+__PACKAGE__->meta->make_immutable;
 
 1;

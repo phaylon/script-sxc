@@ -22,4 +22,6 @@ method build_tokens ($value) {
 
 method tree_item_class { 'Script::SXC::Tree::Dot' };
 
+__PACKAGE__->meta->make_immutable;
+
 1;
