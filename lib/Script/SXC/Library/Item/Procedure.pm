@@ -11,6 +11,7 @@ use aliased 'Script::SXC::Compiled::Value', 'CompiledValue';
 use namespace::clean -except => 'meta';
 
 with 'Script::SXC::TypeHinting';
+with 'Script::SXC::Library::Item::Inlining';
 
 method build_default_typehint { 'code' }
 
@@ -18,11 +19,6 @@ has firstclass => (
     is          => 'ro',
     isa         => Method,
     required    => 1,
-);
-
-has inliner => (
-    is          => 'ro',
-    isa         => Method,
 );
 
 has name => (

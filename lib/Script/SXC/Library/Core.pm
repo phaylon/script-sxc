@@ -1,4 +1,5 @@
 package Script::SXC::Library::Core;
+use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
 
@@ -18,23 +19,36 @@ use namespace::clean -except => 'meta';
 extends 'Script::SXC::Library';
 
 my $CheckArgCount = method ($cb: Str $name!, ArrayRef $exprs!, Int $expected!) {
-
     $cb->('invalid_argument_count', 
         message => sprintf('Invalid argument count: %s expected %d, received %d', $name, $expected, scalar(@$exprs)),
     ) unless @$exprs == $expected;
 };
+
+my $CheckMinMaxArgCount = method ($cb: Str $name!, ArrayRef $exprs!, Int :$min?, Int :$max?) {
+    $cb->('missing_arguments', 
+        message => sprintf('Invalid argument count: %s expects at least %d argument%s',
+            $name, $min, ($min == 1) ? '' : 's'),
+    ) if defined $min and @$exprs < $min;
+    $cb->('too_many_arguments', 
+        message => sprintf('Invalid argument count: %s expects at most %d argument%s',
+            $name, $max, ($max == 1) ? '' : 's'),
+    ) if defined $max and @$exprs > $max;
+};
+
+my $UndefEmpty = sub { length $_[0] ? $_[0] : 'undef' };
 
 #
 #   operators
 #
 
 CLASS->add_inliner('or',
-    via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls) {
+    via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls, :$error_cb!, Str :$name!) {
         return CompiledValue->new(
             content => sprintf '(%s)', 
-                join ' or ', 
-                map  { $_->render } 
-                @{ $compiler->compile_optimized_sequence($env, $exprs, optimize_tailcalls => $optimize_tailcalls) }
+                $UndefEmpty->(join(' or ', 
+                    map  { $_->render } 
+                    @{ $compiler->compile_optimized_sequence($env, $exprs, optimize_tailcalls => $optimize_tailcalls) },
+                )),
         );
     },
 );
@@ -43,9 +57,10 @@ CLASS->add_inliner('and',
     via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls) {
         return CompiledValue->new(
             content => sprintf '(%s)', 
-                join ' and ', 
-                map  { $_->render } 
-                @{ $compiler->compile_optimized_sequence($env, $exprs, optimize_tailcalls => $optimize_tailcalls) }
+                $UndefEmpty->(join(' and ', 
+                    map  { $_->render } 
+                    @{ $compiler->compile_optimized_sequence($env, $exprs, optimize_tailcalls => $optimize_tailcalls) },
+                )),
         );
     },
 );
@@ -54,9 +69,10 @@ CLASS->add_inliner('not',
     via => method (Object :$compiler, Object :$env, ArrayRef :$exprs) {
         return CompiledValue->new(
             content => sprintf  '(%s)', 
-                join ' and ', 
-                map  { sprintf 'not(%s)', $_->compile($compiler, $env)->render }
-                @{ $exprs }
+                $UndefEmpty->(join(' and ', 
+                    map  { sprintf 'not(%s)', $_->compile($compiler, $env)->render }
+                    @{ $exprs },
+                )),
         );
     },
 );
@@ -66,7 +82,9 @@ CLASS->add_inliner('not',
 #
 
 CLASS->add_inliner('if',
-    via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls) {
+    via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls, Str :$name!, :$error_cb!) {
+        $CheckMinMaxArgCount->($error_cb, $name, $exprs, min => 2, max => 3);
+
         # TODO check args, throw exceptions
         my ($cnd, $csq, $alt) = @$exprs;
 
@@ -299,6 +317,33 @@ CLASS->add_inliner('values->hash', via => method (Object :$compiler!, Object :$e
     my $hs = $exprs->[0];
     return $hs->compile($compiler, $env, return_type => 'hash');
 });
+
+#
+#   application
+#
+
+CLASS->add_procedure('apply',
+    firstclass  => sub {
+        my ($invocant, @args) = @_;
+
+        # TODO type check
+
+        push @args, @{ pop @args };
+        @_ = @args;
+
+        given (ref $invocant) {
+            when ('CODE') {
+                goto $invocant;
+            }
+            when ('ARRAY') {
+                return CLASS->call_in_other_library('Script::SXC::Library::Data', 'list-ref', [$invocant, @args]);
+            }
+            when ('HASH') {
+                return CLASS->call_in_other_library('Script::SXC::Library::Data', 'hash-ref', [$invocant, @args]);
+            }
+        }
+    },
+);
 
 __PACKAGE__->meta->make_immutable;
 

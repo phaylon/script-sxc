@@ -65,6 +65,27 @@ CLASS->add_procedure('last-index',
     },
 );
 
+CLASS->add_procedure('list-ref',
+    firstclass  => sub { $_[0]->[ $_[1] ] },
+);
+
+#   list-ref ideas:
+#
+#       (define foo (list 1 2 3))
+#
+#       (foo 1)                     => 2
+#       (set! (foo 1) 23)           => 23 (1 23 3)
+#       (set! (foo (+ 1 1)) 42)     => 42 (1 23 42)
+#
+#   access:
+#       
+#       (define foo (list 1 (hash :foo (list 2 3) :bar (list (hash :x 2) (hash :y 3)))))
+#
+#       ((foo 2) :foo)              => (2 3)
+#       (foo 1 :bar 0 :x)           => 2
+#       (set! (foo 1 :foo 2) 4)     => 4 (list 1 (hash :foo (list 2 3 4) :bar ...))
+#
+
 #
 #   hashes
 #

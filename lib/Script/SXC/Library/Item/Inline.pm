@@ -1,16 +1,10 @@
 package Script::SXC::Library::Item::Inline;
 use Moose;
 
-use Script::SXC::Types qw( CodeRef HashRef Str Method );
-
 use namespace::clean -except => 'meta';
 
-has inliner => (
-    is          => 'ro',
-    isa         => Method,
-    required    => 1,
-);
+with 'Script::SXC::Library::Item::Inlining';
 
-__PACKAGE__->meta->make_immutable;
+has '+inliner' => (required => 1);
 
 1;

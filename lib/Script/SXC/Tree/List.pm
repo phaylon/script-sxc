@@ -37,63 +37,20 @@ method compile (Object $compiler, Object $env, Bool :$allow_definitions?, Str :$
     # not empty, fetch operand and arguments
     my ($op, @args) = @{ $self->contents };
 
-    # symbol application
-    if ($op->isa('Script::SXC::Tree::Symbol')) {
-        my $invo = $op->compile($compiler, $env);
-
-        # procedures and inliners are compiled here
-        if ((    $invo->isa('Script::SXC::Library::Item::Procedure')
-             and $invo->inliner 
-             and not $compiler->force_firstclass_procedures )
-            or   $invo->isa('Script::SXC::Library::Item::Inline')
-        ) {
-            my $inliner  = $invo->inliner;
-            my $compiled = $inliner->($invo, 
-                compiler            => $compiler, 
-                env                 => $env, 
-                name                => $op->value, 
-                exprs               => [@args],
-                symbol              => $op,
-                allow_definitions   => $allow_definitions,
-                optimize_tailcalls  => $optimize_tailcalls,
-                error_cb            => sub {
-                    my ($type, %other_args) = @_;
-
-                    # args
-                    my $message   = delete $other_args{message};
-                    my $source    = delete $other_args{source};
-                    my $exception = delete $other_args{exception};
-
-                    # default source is operator
-                    $source ||= $self;
-
-                    # default exception is a parse error
-                    $exception ||= ParseError;
-
-                    # throw error
-                    $exception->throw(
-                        type                => $type,
-                        message             => $message,
-                        source_description  => $source->source_description,
-                        line_number         => $source->line_number,
-                        %other_args,
-                    );
-                },
-            );
-
-            return $return_type eq 'scalar' 
-                ? $compiled 
-                : CompiledContext->new(expression => $compiled, type => $return_type);
-        }
-    }
-
-    # an invocation object is our fallback
-    return ($optimize_tailcalls ? CompiledGoto : CompiledApplication)->new(
-        invocant    => $op->compile($compiler, $env),
-        arguments   => [ map { $_->compile($compiler, $env) } @args ],
+    return(($optimize_tailcalls ? CompiledGoto : CompiledApplication)->new_from_uncompiled(
+        $compiler,
+        $env,
+        invocant    => $op,
+        arguments   => \@args,
         return_type => $return_type,
       ( ($return_type eq 'list' or $return_type eq 'hash') ? (typehint => $return_type) : () ),
-    );
+        options     => {
+            allow_definitions   => $allow_definitions,
+            optimize_tailcalls  => $optimize_tailcalls,
+            first_class         => $compiler->force_firstclass_procedures,
+            source              => $self,
+        },
+    ));
 };
 
 __PACKAGE__->meta->make_immutable;

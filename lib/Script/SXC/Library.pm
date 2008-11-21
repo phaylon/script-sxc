@@ -16,6 +16,15 @@ class_has _items => (
     default     => sub { {} },
 );
 
+method other_library ($class: Str $library!) {
+    Class::MOP::load_class($library);
+    return $library;
+}
+
+method call_in_other_library($class: Str $library!, Str $proc!, ArrayRef $args = []) {
+    return $class->other_library($library)->get($proc)->firstclass->(@$args);
+};
+
 method add ($class: $name!, Object $item!) {
     $class->_items->{ $_ } = $item
         for ref($name) ? @$name : $name;

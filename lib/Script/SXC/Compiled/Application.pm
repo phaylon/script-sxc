@@ -4,13 +4,15 @@ use Moose::Util::TypeConstraints;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Object ArrayRef Str );
 
-use aliased 'Script::SXC::Compiled::Context', 'CompiledContext';
-use aliased 'Script::SXC::Compiled::Value',   'CompiledValue';
+use aliased 'Script::SXC::Compiled::Context',       'CompiledContext';
+use aliased 'Script::SXC::Compiled::Value',         'CompiledValue';
+use aliased 'Script::SXC::Exception::ParseError',   'ParseError';
 use aliased 'Script::SXC::Compiler::Environment::Variable';
 
 use namespace::clean -except => 'meta';
 
 with 'Script::SXC::TypeHinting';
+with 'Script::SXC::SourcePosition';
 
 has invocant => (
     is          => 'rw',
@@ -48,6 +50,67 @@ method _wrap_return (Str $body!) {
 
 method render_code_application (Object $invocant!, Str $args!) {
     return sprintf '(%s)->(%s)', $invocant->render, $args;
+}
+
+method new_from_uncompiled 
+    ($class: Object $compiler!, Object $env!, Object :$invocant!, ArrayRef :$arguments!, HashRef :$options = {}, :$return_type, :$typehint) {
+
+    # prepare invocant for introspection
+    my $compiled_invocant = $class->prepare_uncompiled_invocant($compiler, $env, $invocant);
+
+    # procedures and inliners are compiled here
+    if (    $invocant->isa('Script::SXC::Tree::Symbol')
+        and $compiled_invocant->does('Script::SXC::Library::Item::Inlining')
+        and $compiled_invocant->inliner
+        and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
+    ) {
+        my $inliner  = $compiled_invocant->inliner;
+        my $compiled = $inliner->($compiled_invocant, 
+            compiler            => $compiler, 
+            env                 => $env, 
+            name                => $invocant->value, 
+            exprs               => [@$arguments],
+            symbol              => $invocant,
+            allow_definitions   => $options->{allow_definitions},
+            optimize_tailcalls  => $options->{optimize_tailcalls},
+            error_cb            => sub {
+                my ($type, %other_args) = @_;
+
+                # args
+                my $message   = delete $other_args{message};
+                my $source    = delete $other_args{source};
+                my $exception = delete $other_args{exception};
+
+                # default source is operator
+                $source ||= $options->{source} || $invocant;
+
+                # default exception is a parse error
+                $exception ||= ParseError;
+
+                # throw error
+                $exception->throw(type => $type, message => $message, $source->source_information, %other_args);
+            },
+        );
+
+        return $return_type eq 'scalar' 
+            ? $compiled 
+            : CompiledContext->new(expression => $compiled, type => $return_type);
+    }
+
+    return $class->new(
+        invocant    => $compiled_invocant,
+        arguments   => [ $class->prepare_uncompiled_arguments($compiler, $env, $arguments) ],
+        return_type => $return_type,
+      ( $typehint ? (typehint => $typehint) : () ),
+    );
+}
+
+method prepare_uncompiled_invocant (Object $compiler!, Object $env!, Object $invocant!) {
+    return $invocant->compile($compiler, $env);
+}
+
+method prepare_uncompiled_arguments (Object $compiler!, Object $env!, ArrayRef $args) {
+    return map { $_->compile($compiler, $env) } @$args;
 }
 
 method render {

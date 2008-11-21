@@ -12,11 +12,17 @@ sub T010_operators: Tests {
     is self->run('(or 1 2)'), 1, 'or with two true values returns first true value';
     is self->run('(or #f 17)'), 17, 'or with a false and a true value returns first true value';
     is self->run('(or #f 0)'), 0, 'or with no true value is false';
+    is self->run('(or 23)'), 23, 'or with one true value returns value';
+    is self->run('(or 0)'), 0, 'or with one false value returns value';
+    is self->run('(or)'), undef, 'or without value returns undef';
 
     # and
     is self->run('(and 1 2 3)'), 3, 'and with three true values returns last true value';
     is self->run('(and 1 2 0)'), 0, 'and with true and false values returns first false value';
     is self->run('(and 0 #f)'), 0, 'and with no true values returns first false value';
+    is self->run('(and 23)'), 23, 'and with one true value returns value';
+    is self->run('(and 0)'), 0, 'and with one false value returns value';
+    is self->run('(and)'), undef, 'and without value returns undef';
 
     # not
     ok !self->run('(not 2)'), 'not with true value is false';
@@ -24,9 +30,11 @@ sub T010_operators: Tests {
     ok self->run('(not #f 0)'), 'not with only false values is true';
     ok !self->run('(not #f 2 0)'), 'not with true value in between is false';
     ok !self->run('(not 1 2 3)'), 'not with only true values is false';
+    is self->run('(not)'), undef, 'not without values is undef';
 }
 
 sub T100_conditionals: Tests {
+    my $self = self;
 
     # if
     is self->run('(if 2 3)'), 3, 'if without alternative and true condition returns consequence';
@@ -34,6 +42,9 @@ sub T100_conditionals: Tests {
     is self->run('(if 2 3 4)'), 3, 'if with alternative and true condition returns consequence';
     is self->run('(if 0 3 4)'), 4, 'if with alternative and false condition returns alternative';
     is self->run('(if (or #f 3) (and 2 3) 4)'), 3, 'if with true condition returns consequence result';
+    throws_ok { $self->run('(if)') } 'Script::SXC::Exception::ParseError', 'if without elements throws parse error';
+    throws_ok { $self->run('(if 23)') } 'Script::SXC::Exception::ParseError', 'if with only single element throws parse error';
+    throws_ok { $self->run('(if 1 2 3 4)') } 'Script::SXC::Exception::ParseError', 'if with more than three elements throws parse error';
 }
 
 sub T200_lambdas: Tests {
