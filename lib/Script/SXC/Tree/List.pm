@@ -40,10 +40,11 @@ method compile (Object $compiler, Object $env, Bool :$allow_definitions?, Str :$
     return CompiledApplication->new_from_uncompiled(
         $compiler,
         $env,
-        invocant    => $op,
-        arguments   => \@args,
-        return_type => $return_type,
-        tailcalls   => $optimize_tailcalls,
+        invocant                => $op,
+        arguments               => \@args,
+        return_type             => $return_type,
+        tailcalls               => $optimize_tailcalls,
+        inline_firstclass_args  => 1,
         $self->source_information,
       ( ($return_type eq 'list' or $return_type eq 'hash') ? (typehint => $return_type) : () ),
         options     => {

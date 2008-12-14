@@ -67,7 +67,7 @@ method as_definition_map {
 method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
 
     # grab-all when symbol is given
-    if ($item->isa('Script::SXC::Tree::Symbol')) {
+    if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa('Script::SXC::Compiler::Environment::Variable::Internal')) {
         return $class->new(rest_parameter => Parameter->new_from_tree($item, $compiler, $env));
     }
 

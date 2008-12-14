@@ -148,7 +148,7 @@ CLASS->add_inliner('if',
         my $definition_map = $sig->as_definition_map;
 
         # build a function scope
-        return $env->build_scope_with_definitions(CompiledFunction, 
+        return $env->build_scope_with_definitions(CompiledFunction,
             $compiler, 
             \@body,
             $definition_map, 
@@ -522,10 +522,12 @@ CLASS->add_procedure('apply',
                     )->render,
                 ),
             ],
-            tailcalls   => $compiler->optimize_tailcalls,
-            return_type => 'scalar',
+            tailcalls                   => $compiler->optimize_tailcalls,
+            return_type                 => 'scalar',
+            inline_invocant             => 0,
+            inline_firstclass_args      => 0,
             $symbol->source_information,
-            options     => {
+            options => {
                 optimize_tailcalls  => $compiler->optimize_tailcalls,
                 first_class         => $compiler->force_firstclass_procedures,
                 source              => $self,

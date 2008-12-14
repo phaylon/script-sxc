@@ -48,6 +48,9 @@ has child_class => (
 );
 
 method create_variable (Object $symbol, HashRef :$params = {}) {
+    return $symbol
+        if $symbol->isa('Script::SXC::Compiler::Environment::Variable::Internal');
+
     my $name = $symbol->value;
     
     $symbol->throw_parse_error(invalid_dot_symbol => 'The dot symbol is reserved and cannot be used as an identifier')
@@ -198,14 +201,11 @@ method find_variable (Str|Object $name where { not ref $_ or $_->can('value') })
     my ($sym, $orig);
     if (ref $name) {
         $sym  = $name;
+#        if ($name->isa('Script::SXC::Compiler::Environment::Variable::Internal')) {
+#            return $name;
+#        }
         $name = $name->value;
-#        $orig = $name->value;
-#        $name = $name->namespaced_name;
     }
-#    else {
-#        $orig = $name;
-#        $name = 'user:' . $name;
-#    }
 
     # find environment the var is in
     my $env = $self->find_env_for_variable($name)

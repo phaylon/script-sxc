@@ -3,7 +3,7 @@ use 5.010;
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::Method::Signatures;
-use MooseX::Types::Moose qw( Object ArrayRef Str );
+use MooseX::Types::Moose qw( Object ArrayRef Str Bool );
 
 use Data::Dump qw( pp );
 
@@ -92,7 +92,10 @@ method _render_single_value_check (Str $args!, Str $type!) {
 method tailcall_alternative { 'Script::SXC::Compiled::Goto' }
 
 method new_from_uncompiled 
-    ($class: Object $compiler!, Object $env!, Object :$invocant!, ArrayRef :$arguments!, HashRef :$options = {}, :$return_type, :$typehint, :$line_number, :$source_description, :$tailcalls) {
+    ($class: Object $compiler!, Object $env!, Object :$invocant!, ArrayRef :$arguments!, HashRef :$options = {}, :$return_type, :$typehint, :$line_number, :$source_description, :$tailcalls, :$inline_invocant, :$inline_firstclass_args) {
+
+    $inline_invocant        //= 1;
+    $inline_firstclass_args //= 0;
 
     $class = $class->tailcall_alternative
         if $tailcalls;
@@ -109,6 +112,7 @@ method new_from_uncompiled
 
     # procedures and inliners are compiled here
     if (    $invocant->isa('Script::SXC::Tree::Symbol')
+        and $inline_invocant
         and $compiled_invocant->does('Script::SXC::Library::Item::Inlining')
         and $compiled_invocant->inliner
         and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
@@ -147,11 +151,11 @@ method new_from_uncompiled
     }
 
     return $class->new(
-        invocant            => $compiled_invocant,
-        arguments           => [ $class->prepare_uncompiled_arguments($compiler, $env, $arguments) ],
-        return_type         => $return_type,
-        line_number         => $line_number,
-        source_description  => $source_description,
+        invocant                    => $compiled_invocant,
+        arguments                   => [ $class->prepare_uncompiled_arguments($compiler, $env, $arguments) ],
+        return_type                 => $return_type,
+        line_number                 => $line_number,
+        source_description          => $source_description,
       ( $typehint ? (typehint => $typehint) : () ),
     );
 }
@@ -161,7 +165,7 @@ method prepare_uncompiled_invocant (Object $compiler!, Object $env!, Object $inv
 }
 
 method prepare_uncompiled_arguments (Object $compiler!, Object $env!, ArrayRef $args) {
-    return map { $_->compile($compiler, $env, fc_inline_optimise => 1) } @$args;
+    return map { $_->compile($compiler, $env) } @$args;
 }
 
 method render {

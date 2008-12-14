@@ -49,7 +49,7 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
 method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
 
     # we have been given just a symbol
-    if ($item->isa('Script::SXC::Tree::Symbol')) {
+    if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa('Script::SXC::Compiler::Environment::Variable::Internal')) {
 
         # we just have the name
         return $class->new(symbol => $item);

@@ -21,7 +21,7 @@ method compile (Object $compiler, Object $env, Bool :$fc_inline_optimise?) {
     my $item = $env->find_variable($self);
 
     # can create inline
-    warn "TEST INLINE [$fc_inline_optimise]\n";
+#    warn "TEST INLINE [$fc_inline_optimise]\n";
     if (0 and $fc_inline_optimise and $item->can('does') and $item->does('Script::SXC::Library::Item::AcceptCompiler') and $item->can_accept_compiler) {
         warn "INLINE\n";
         return $item->accept_compiler($compiler, $env, $self);
