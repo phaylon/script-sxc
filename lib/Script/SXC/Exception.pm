@@ -19,6 +19,11 @@ has message => (
     lazy        => 1,
 );
 
+has type => (
+    is          => 'rw',
+    isa         => Str,
+);
+
 method build_default_message { undef }
 
 method throw (%args) {

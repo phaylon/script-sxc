@@ -2,15 +2,16 @@ package Script::SXC::Reader::Source::String;
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
+use MooseX::Method::Signatures;
+use MooseX::Types::Moose qw( ArrayRef Str );
 
 use Script::SXC::Reader::Types qw( Str SourceObject ScalarRef );
 
 use Data::Dump qw( dump );
 use CLASS;
-use namespace::clean -except => 'meta';
-use Method::Signatures;
 
-with 'Script::SXC::Reader::Source';
+use namespace::clean -except => 'meta';
+
 # original point of coercion
 
 has lines => (
@@ -50,6 +51,8 @@ method next_line {
 method end_of_stream { $self->line_number >= $self->line_count };
 
 method source_description { '(scalar)' };
+
+with 'Script::SXC::Reader::Source';
 
 __PACKAGE__->meta->make_immutable;
 

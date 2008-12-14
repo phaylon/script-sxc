@@ -75,9 +75,8 @@ method build_top_compiled_unit {
 my $CheckQuoteArg = method (Object $tree: Str $name) {
 
     # require one argument
-    ParseError->throw(
-        type    => 'invalid_argument_count', 
-        message => sprintf('Invalid argument count: %s expected 1, received %d', $name, $tree->content_count - 1),
+    $tree->throw_parse_error(
+        invalid_argument_count => sprintf('Invalid argument count: %s expected 1, received %d', $name, $tree->content_count - 1),
     ) unless $tree->content_count == 2;
 
     # return quote argument
@@ -87,7 +86,7 @@ my $CheckQuoteArg = method (Object $tree: Str $name) {
 method quote_tree (Object $tree, Object $env, Bool :$allow_unquote) {
     
     # tree must be quotable
-    ParseError->throw(type => 'unquotable', message => 'Unquotable object', $tree->source_information)
+    $tree->throw_parse_error(unquotable => sprintf('Unquotable object: %s', ref $tree))
         unless $tree->does('Script::SXC::Tree::Quotability');
 
     # look for unquotes if quasiquoting and possible on this element

@@ -7,11 +7,6 @@ use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Exception';
 
-has type => (
-    is          => 'rw',
-    isa         => Str,
-);
-
 __PACKAGE__->meta->make_immutable;
 
 1;

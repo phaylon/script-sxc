@@ -35,10 +35,11 @@ has libraries => (
 );
 
 method find_library_item (Str $name!) {
+#    $name =~ s/^[a-z]+://;
 
   LIBRARY:  
     for my $lib ($self->library_objects) {
-#        warn "CHECKING LIBRARY $lib\n";
+        #warn "CHECKING LIBRARY $lib FOR $name\n";
         my $item = $lib->get($name)
             or next LIBRARY;
         return $item;

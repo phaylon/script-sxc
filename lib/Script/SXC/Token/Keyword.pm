@@ -13,8 +13,7 @@ with 'Script::SXC::Token';
 has '+value' => (isa => Str);
 
 method match_regex { 
-    qr/
-        :
+    my $identifier = qr/
         (?:
             [a-z]
             [a-z0-9_-]*
@@ -22,14 +21,21 @@ method match_regex {
           |
             [a-z]
         )
-    /xi
+    /xi;
+    return qr/
+        (?:
+            :$identifier
+          |
+            $identifier:
+        )
+    /xi;
 };
 
 method build_tokens ($value) {
     my $class = ref($self) || $self;
 
-    # just strip double colon from beginning
-    $value =~ s/^://;
+    # just strip double colons
+    $value =~ s/://;
 
     return $class->new(value => $value);
 };

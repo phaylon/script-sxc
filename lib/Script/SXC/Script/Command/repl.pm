@@ -52,13 +52,14 @@ override _build_default_compiler => method {
 method run {
     my $lex = Lexical::Persistence->new;
     my %lex;
-    my $buf = '';
+    my @buf;
     my $chr = 0;
 
     $self->print_info("Welcome to the Script::SXC REPL\n", no_prefix => 1);
     
   READ:
-    while (defined(my $line = ($buf ? $self->read_rest_of_expression(' ' x $chr) : $self->read_fresh_expression))) {
+    while (defined(my $line = (@buf ? $self->read_rest_of_expression(' ' x $chr) : $self->read_fresh_expression))) {
+        local $@;
 
         my $body;   # body to print out
         my $stage;  # stage where an error might have occurred
@@ -68,7 +69,7 @@ method run {
 
             # build token stream
             $stage       = 'tokenisation';
-            my $code     = sprintf("%s%s\n", ($buf ? "$buf\n" : ''), $line);
+            my $code     = join("\n", @buf, $line);
             my $stream   = $self->build_stream(\$code);
 
             # transform to tree
@@ -109,13 +110,15 @@ method run {
             # the error was only an unclosed expression, we can continue on the next line
             if (blessed($e) and $e->isa('Script::SXC::Exception::MissingClose')) {
                 #warn pp($e), "\n";
-                $buf .= "$line\n";
+                push @buf, $line;
                 $chr = $e->char_number;
                 next READ;
             }
 
             # normal error
+            $self->print_info($body, no_prefix => 1, filter => sub { "# $_" });
             $self->print_warning("An error occurred during $stage: $e");
+            @buf = ();
             next READ;
         }
 
@@ -124,7 +127,7 @@ method run {
         $self->print_info(pp($result) . "\n", no_prefix => 1);
 
         # reset buffer
-        $buf = '';
+        @buf = ();
     }
 }
 

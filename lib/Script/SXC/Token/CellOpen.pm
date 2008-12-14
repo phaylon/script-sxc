@@ -6,6 +6,7 @@ use Script::SXC::Types qw( Str );
 use aliased 'Script::SXC::Exception::ParseError';
 use aliased 'Script::SXC::Exception::MissingClose';
 use aliased 'Script::SXC::Tree::List', 'ListClass';
+use aliased 'Script::SXC::Tree::Hash', 'HashClass';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;
@@ -15,10 +16,16 @@ with 'Script::SXC::Token';
 
 has '+value' => (isa => Str);
 
-my %MatchSet = qw/ ( ) [ ] /;
+my %MatchSet = qw/ ( ) [ ] { } /;
+
+my %ListClass = (
+    ')' => ListClass,
+    ']' => ListClass,
+    '}' => HashClass,
+);
 
 method match_regex {
-    [qw/ ( [ /]
+    [qw/ ( [ { /]
 };
 
 method build_tokens ($value) {
@@ -46,7 +53,7 @@ method transform ($stream) {
             ) unless $token->value eq $MatchSet{ $self->value };
 
             # return the tree with the items
-            return ListClass->new_from_token(
+            return $ListClass{ $token->value }->new_from_token(
                 $self,
                 contents => \@items,
             );

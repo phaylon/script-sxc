@@ -3,6 +3,8 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Str Object Int );
 
+use aliased 'Script::SXC::Compiler::Environment::Variable::Outer';
+
 use namespace::clean -except => 'meta';
 
 with 'Script::SXC::TypeHinting';
@@ -31,6 +33,12 @@ method render {
 
     # simply return identifier as a perl var
     return $self->sigil . $self->identifier;
+}
+
+method compile { $self }
+
+method as_outer {
+    return Outer->new(%$self);
 }
 
 method new_anonymous ($class: Str $info?) {

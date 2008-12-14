@@ -6,9 +6,10 @@ use MooseX::AttributeHelpers;
 use MooseX::Types::Moose    qw( Str ArrayRef HashRef Object );
 
 use CLASS;
-use Scalar::Util qw( weaken );
+use Scalar::Util qw( weaken refaddr );
 
 use aliased 'Script::SXC::Compiler::Environment::Variable';
+use aliased 'Script::SXC::Compiler::Environment::Variable::Outer';
 use aliased 'Script::SXC::Compiler::Environment::Definition';
 use aliased 'Script::SXC::Compiler::Environment::Modification';
 use aliased 'Script::SXC::Exception::UnboundVar', 'UnboundVarException';
@@ -46,8 +47,11 @@ has child_class => (
     },
 );
 
-method create_variable (Str | Object $name, HashRef :$params = {}) {
-    $name = $name->value if ref $name;
+method create_variable (Object $symbol, HashRef :$params = {}) {
+    my $name = $symbol->value;
+    
+    $symbol->throw_parse_error(invalid_dot_symbol => 'The dot symbol is reserved and cannot be used as an identifier')
+        if $name eq '.';
 
     # create new variable object
     my $var = Variable->new_from_name($name, %$params);
@@ -111,7 +115,7 @@ method build_definition (Object $compiler!, Object $symbol!, Object $expr!, Code
 }
 
 method build_scope_with_definitions 
-    (Str $scope_class, Object $compiler, ArrayRef $body, ArrayRef $defs, HashRef :$additional_params = {}, :$body_cb?, HashRef :$compile_params = {}) {
+    (Str $scope_class, Object $compiler, ArrayRef $body, ArrayRef $defs, HashRef :$additional_params = {}, :$body_cb?, HashRef :$compile_params = {}, Object :$validation_source?) {
 
     # split up definitions in name/expr pairs
     my @def_pairs = @$defs;
@@ -126,8 +130,9 @@ method build_scope_with_definitions
     # build compiled definitions
     my @compiled_defs
       = map {
-            $_->[0]->try_typehinting_from($_->[1]);
-            Definition->new(variable => $_->[0], expression => $_->[1]);
+            my $expr = ( (ref $_->[1] eq 'CODE') ? $_->[1]->($scope_env) : $_->[1] );
+            $_->[0]->try_typehinting_from($expr);
+            Definition->new(variable => $_->[0], expression => $expr);
         }
         @def_pairs;
 
@@ -148,7 +153,6 @@ method build_scope_with_definitions
         )
       : [ map {
           my $pass_on_opt = $_cnt == $#$body;
-#          warn "CNT $_cnt/$#$body+1 OPT $_tc_opt PAR $compile_params PASS $pass_on_opt TO $_\n";
           $_cnt++; 
           $_->compile(
             $compiler, 
@@ -163,6 +167,9 @@ method build_scope_with_definitions
         environment => $scope_env,
         definitions => \@compiled_defs,
         expressions => $expressions,
+      ( $validation_source 
+        ? (validations => $validation_source->compile_validations($compiler, $scope_env))
+        : () ),
         %$additional_params,
     );
 }
@@ -188,21 +195,38 @@ method find_env_for_variable (Str $name!) {
 method find_variable (Str|Object $name where { not ref $_ or $_->can('value') }) {
 
     # if we got a symbol, use its value
-    my $sym;
+    my ($sym, $orig);
     if (ref $name) {
         $sym  = $name;
         $name = $name->value;
+#        $orig = $name->value;
+#        $name = $name->namespaced_name;
     }
+#    else {
+#        $orig = $name;
+#        $name = 'user:' . $name;
+#    }
 
     # find environment the var is in
     my $env = $self->find_env_for_variable($name)
         or UnboundVarException->throw(
-            message => sprintf(q{Unbound variable '%s'}, $name),
+            name => $name,
           ( $sym ? $sym->source_information : () ),
         );
 
     # return variable
-    return $env->get_variable($name);
+    return $self->wrap_external_variable($env->get_variable($name), $env);
+};
+
+method wrap_external_variable (Object $variable!, Object $env!) {
+
+    # same environment, return direct var
+    return $variable 
+        if not($variable->isa('Script::SXC::Environment::Variable'))
+        or refaddr($self) eq refaddr($env);
+
+    # outer variables get wrapped for typehinting adjustments
+    return $variable->as_outer;
 };
 
 method build_default_variables {

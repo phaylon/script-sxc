@@ -22,6 +22,12 @@ method compile (Object $compiler, Object $env, Bool :$to_string) {
     );
 };
 
+method quoted (Object $compiler!, Object $env!) {
+    return $self->compile($compiler, $env);
+}
+
+with 'Script::SXC::Tree::Quotability';
+
 __PACKAGE__->meta->make_immutable;
 
 1;

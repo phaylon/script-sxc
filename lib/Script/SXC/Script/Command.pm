@@ -3,10 +3,27 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Object Bool );
 
-use aliased 'Script::SXC::Reader',                   'ReaderClass';
-use aliased 'Script::SXC::Compiler',                 'CompilerClass';
-use aliased 'Script::SXC::Script::Message',          'InfoMessage';
-use aliased 'Script::SXC::Script::Message::Warning', 'WarningMessage';
+#use aliased 'Script::SXC::Reader',                   'ReaderClass';
+#use aliased 'Script::SXC::Compiler',                 'CompilerClass';
+#use aliased 'Script::SXC::Script::Message',          'InfoMessage';
+#use aliased 'Script::SXC::Script::Message::Warning', 'WarningMessage';
+
+sub ReaderClass    { 
+    Class::MOP::load_class('Script::SXC::Reader'); 
+    return 'Script::SXC::Reader';
+}
+sub CompilerClass  { 
+    Class::MOP::load_class('Script::SXC::Compiler'); 
+    return 'Script::SXC::Compiler';
+}
+sub InfoMessage    { 
+    Class::MOP::load_class('Script::SXC::Script::Message'); 
+    return 'Script::SXC::Script::Message';
+}
+sub WarningMessage { 
+    Class::MOP::load_class('Script::SXC::Script::Message::Warning'); 
+    return 'Script::SXC::Script::Message::Warning';
+}
 
 use namespace::clean -except => 'meta';
 
@@ -14,7 +31,7 @@ extends 'MooseX::App::Cmd::Command';
 
 has _reader => (
     is          => 'rw',
-    isa         => ReaderClass,
+    isa         => Object,
     required    => 1,
     builder     => '_build_default_reader',
     lazy        => 1,
@@ -25,7 +42,7 @@ has _reader => (
 
 has _compiler => (
     is          => 'rw',
-    isa         => CompilerClass,
+    isa         => Object,
     required    => 1,
     builder     => '_build_default_compiler',
     lazy        => 1,

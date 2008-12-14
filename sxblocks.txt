@@ -1,0 +1,96 @@
+
+    ; inline-optimized blocks
+    (sx-quote
+     (html (head (title ,title)
+                 (link { href: "style.css"
+                         type: "text/css" }))
+      (body
+       (h1 { class: page-title }                        ; symbols get auto-stringified for convenience
+           ,title)
+       (div { id: content }
+        (p This is a sentence (br)
+           (loc: home.welcome-text))))))
+
+    ; possible other options
+    (sx-quote (@ :auto-escape :auti-loc)
+     (div (span foo.bar.baz)                           ; (loc "foo.bar.baz"), but not in attrs, also autoescaped
+          (raw: "<b>foo</b>")                          ; no i18n, no auto-escape
+          (str: "x > y")))                             ; no i18n, but auto-escaped
+
+    ; when not :no-tag-transform
+    (sx-quote
+     (ul#navigation
+      (li.nav-item 
+       (a { href: ,(ctx :uri-for "home") } "Home"))
+      (li.nav-item#current-nav-item
+       (a { href: ,(ctx :uri-for "contact") } "Contact"))))
+
+
+
+    ; option list
+
+        :auto-escape
+        :no-auto-escape
+        :escaper
+        :auto-loc
+        :no-auto-loc
+        :localiser
+        :tag-transform
+        :no-tag-transform
+        :tag-transformer
+
+    ; builtin keyword commands
+
+        (loc: foo.bar.baz 
+              "foo bar"
+              (foo.bar.baz arg1 arg2)
+              ("foo (%1)" "inside"))
+        (raw: "<u>important</u>")
+        (str: "foo < 23"
+              bar)
+        (tag: div#content)
+        (esc: "sum < product")
+        (ent: nbsp hellip
+              7384
+              0xBEEF)
+        (run: (define (spaced . strings)
+               (join " " strings))
+              (define (em string)
+               (sx-quote (em ,string)))
+              (spaced "I" "can" "has" (em "cheezeburgr") "?"))
+        (run: (ctx :uri-for "static" "logo.png"))
+        (var: title)
+
+
+
+
+    ; complete example
+
+    (define (page title user uri-for current-time)
+     (sx-quote (@ :auto-escape :auto-loc :tag-transform)
+      (html
+       (head
+        (title (var: title))
+        (link { rel: stylesheet type: text/css }))
+       (body
+        (h1#site-title (var: title))
+        (a#logo-link
+         { href: (run: (uri-for "home")) }
+         (img { src: (run: (uri-for "static/images/logo.png")) }))
+        (div.block#content
+         (div.welcome-msg (loc: home.welcome-msg (run: (name: user))))
+         (div.info home.info-msg))
+        (div.block#footer
+         ("This page was rendered on %1 at %2" 
+          (run: (current-time :date))
+          (run: (current-time :time))))))))
+
+    (page "Test Page"
+          ((ctx :user) :obj)
+          (λ args (apply ctx :uri-for args))
+          ((class "DateTime") :now))
+
+
+
+
+

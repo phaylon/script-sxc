@@ -36,6 +36,24 @@ has pre_text => (
     isa             => Str,
 );
 
+has required_packages => (
+    is              => 'rw',
+    isa             => ArrayRef[Str],
+    required        => 1,
+    default         => sub { [] },
+);
+
+has required_types => (
+    metaclass       => 'Collection::Array',
+    is              => 'rw',
+    isa             => ArrayRef[Str],
+    required        => 1,
+    default         => sub { [] },
+    provides        => {
+        'count'         => 'required_types_count',
+    },
+);
+
 method evaluate {
 
     my $handler = $self->evaluated_callback;
@@ -56,9 +74,11 @@ method evaluated_callback {
 
 method get_full_body {
     return join ';', 
-        ( $self->use_strict   ? 'use strict'          : () ),
-        ( $self->use_warnings ? 'use warnings'        : () ),
+        ( $self->use_strict   ? 'use strict'          : 'no strict' ),
+        ( $self->use_warnings ? 'use warnings'        : 'no warnings' ),
+        'use 5.010',
         ( $self->pre_text     ? $self->pre_text . ';' : () ),
+        ( map { sprintf 'require %s', $_ } @{ $self->required_packages } ),
         $self->get_body;
 };
 

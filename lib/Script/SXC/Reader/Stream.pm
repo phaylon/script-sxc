@@ -4,8 +4,9 @@ use MooseX::AttributeHelpers;
 
 use Data::Dump qw( dump );
 
+use MooseX::Types::Moose        qw( Str Object );
 use Script::SXC::Types          qw( TokenObject );
-use Script::SXC::Reader::Types  qw( SourceObject Str );
+use Script::SXC::Reader::Types  qw( SourceObject );
 
 use aliased 'Script::SXC::Exception::ParseError';
 
@@ -168,7 +169,8 @@ method next_token {
         ParseError->throw(
             type                => 'cannot_parse',
             message             => sprintf('Unable to parse: ' . $self->line_buffer),
-            $self->source_information,
+            source_description  => $self->source_description,
+            line_number         => $self->source_line_number,
         );
     }
 };

@@ -114,6 +114,16 @@ sub keywords: Tests {
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Keyword';
         is $item->value, 'foo', 'keyword in tree has correct value';
     }
+
+    {   # swapped doublecolon keyword
+        explain 'simple keyword tree: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('foo:');
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'single item in simple keyword tree';
+        isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Keyword';
+        is $item->value, 'foo', 'keyword in tree has correct value';
+    }
 }
 
 sub strings: Tests {
@@ -143,10 +153,10 @@ sub strings: Tests {
             my $tree = self->transform('"foo ${bar} baz"');
         isa_ok $tree, TreeClass;
         my $ls = $tree->get_content_item(0);
-        list_ok $ls, 'str-append application',
+        list_ok $ls, 'string application',
             content_count => 4,
             content_test  => [
-                sub { builtin_ok $_, 'string append builtin', value => 'str-append' },
+                sub { builtin_ok $_, 'string append builtin', value => 'string' },
                 sub { string_ok  $_, 'foo ', 'first plain string part' },
                 sub { symbol_ok  $_, 'interpolated symbol', value => 'bar' },
                 sub { string_ok  $_, ' baz', 'second plain string part' },
@@ -159,10 +169,10 @@ sub strings: Tests {
             my $tree = self->transform('"foo $(join sep (list 1 2 3)) bar"');
         isa_ok $tree, TreeClass;
         my $ls = $tree->get_content_item(0);
-        list_ok $ls, 'str-append application for interpolation',
+        list_ok $ls, 'string application for interpolation',
             content_count => 4,
             content_test  => [
-                sub { builtin_ok $_, 'string append builtin', value => 'str-append' },
+                sub { builtin_ok $_, 'string append builtin', value => 'string' },
                 sub { string_ok  $_, 'foo ', 'first plain string part' },
                 sub {
                     list_ok $_, 'interpolated application',
@@ -284,6 +294,23 @@ sub cells: Tests {
             'parenthesis mismatch throws parse error';
         like $@, qr/expected/i, 'error message seems ok';
         is $@->type, 'parenthesis_mismatch', 'parse error type correct';
+    }
+}
+
+sub inline_hashes: Tests {
+
+    {   # simple creation
+        explain 'inline hash: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('{foo: 23 bar: 42}');
+        is $tree->content_count, 1, 'inline hash parses into single item';
+        $tree = $tree->get_content_item(0);
+        isa_ok $tree, 'Script::SXC::Tree::Hash';
+        is $tree->content_count, 4, 'inline hash has correct number of values';
+        isa_ok $tree->get_content_item(0), 'Script::SXC::Tree::Keyword';
+        isa_ok $tree->get_content_item(1), 'Script::SXC::Tree::Number';
+        isa_ok $tree->get_content_item(2), 'Script::SXC::Tree::Keyword';
+        isa_ok $tree->get_content_item(3), 'Script::SXC::Tree::Number';
     }
 }
 

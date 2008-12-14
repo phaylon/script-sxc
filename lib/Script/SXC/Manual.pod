@@ -1,0 +1,227 @@
+=head1 NAME
+
+Script::SXC::Manual - language documentation for Script-SXC
+
+
+=head1 USING THE REPL
+
+
+=head1 GENERAL SYNTAX
+
+=head2 Atomic Values
+
+=head2 Lists
+
+=head2 Application
+
+=head3 List Evaluation
+
+=head3 apply
+
+=head3 values->list
+
+=head2 Quoting
+
+=head3 quote
+
+=head3 quasiquote, unquote and unquote-splicing
+
+
+=head1 ATOMIC VALUES
+
+=head2 Numbers
+
+=head3 +, -, *, /
+
+=head3 ++, --
+
+  (++ 2)                            => 3
+  (-- 3)                            => 2
+
+=head2 Strings
+
+=head3 string
+
+  (string "Value: " 23 "!")         => "Value: 23!"
+  (string)                          => ""
+
+=head3 length
+
+  (length "foo")                    => 3
+
+=head2 Characters
+
+=head2 Booleans
+
+=head2 Keywords
+
+=head3 keyword?
+
+  (keyword? :foo)                   => #t
+
+=head2 Symbols
+
+=head3 symbol?
+
+  (symbol? 'foo)                    => #t
+
+=head3 symbol->string
+
+  (symbol->string 'foo)             => "foo"
+
+
+=head1 COMBINED DATA STRUCTURES
+
+=head2 Hashes
+
+=head3 hash
+
+  (hash :x 2 :y 3)
+
+=head3 merge
+
+  (merge (hash :x 2) (hash :y 3))   => (hash :x 2 :y 3)
+
+=head3 hash->list
+
+  (hash->list (hash :x 3 :y 2))     => (list :x 3 :y 2)
+
+=head3 hash->pairs
+
+  (hash->pairs (hash :x 3 :y 2))    => (list (list :x 3) (list :y 3))
+
+=head3 keys
+
+  (keys (hash :x 2 :y 3))           => (list "x" "y")
+
+=head3 values
+
+  (keys (hash :x 2 :y 3))           => (list 2 3)
+
+=head3 hash-ref
+
+  (hash-ref (hash :x 2 :y 3) :x)    => 2
+
+
+=head2 Lists
+
+=head3 list
+
+  (list 1 2 3)
+
+=head3 head
+
+  (head (list 1 2 3))               => 1
+  (head (list 1 2 3) 2)             => (list 1 2)
+  (head (list 1 2) 3)               => (list 1 2)
+  (head (list 3 4) 1)               => (list 3)
+
+=head3 tail
+
+  (tail (list 1 2 3 4)              => (list 2 3 4)
+  (tail (list 1 2 3 4) 2)           => (list 3 4)
+  (tail (list 1 2) 3)               => (list 1 2)
+
+=head3 append
+
+  (append (list 1 2) (list 3 4))    => (list 1 2 3 4)
+
+=head3 size
+
+  (size (list 2 3))                 => 2
+
+=head3 empty?
+
+  (empty? (list))                   => #t
+
+=head3 list-ref
+
+  (list-ref (list 2 3 4) 1)         => 3
+
+
+=head1 ENVIRONMENTS
+
+=head2 Variables and Definitions
+
+=head3 define
+
+  (define foo 23)                   => 23
+
+  (define (foo x y)
+   (+ x y))
+
+  (define (foo (x :type Int)
+               (y :type Int))
+   (+ x y))
+
+=head3 let
+
+  (let [(x 2) (y 3)] (+ x y))       => 5
+
+  (let foo [(x 3)]
+   (if x (+ x (foo (-- x)))
+         0))                        => 6
+
+  ; same as:
+  (begin
+   (define foo
+    (lambda (x) (if x (+ x (foo (-- x))) 0)))
+   (foo 3))
+
+=head3 let*
+
+=head3 let-rec
+
+  (let-rec [(foo (λ (n) (if n (foo (-- n)) 0)))]
+    (foo 3))
+
+=head3 set!
+
+
+=head1 CONDITIONALS
+
+=head2 Sequentials
+
+=head3 or
+
+=head3 and
+
+=head3 not
+
+=head2 Branching
+
+=head3 if
+
+=head2 Case Switching
+
+=head3 cond
+
+  (cond
+   [foo  "foo is true"]
+   [bar  "bar is true"]
+   [else "neither foo nor bar"])
+
+=head3 given
+
+  (given (list-ref ls 3)
+   (2           "two")
+   (3           "three")
+   ((< _ 10)    "at least less than ten")
+   (default     "something else"))
+
+
+=head1 LOOPING
+
+=head2 Iterations
+
+
+=head1 ELSE
+
+=head3 gather/take
+
+  (gather
+    (take 3)
+    (take 5)
+    (take "foo" 23))        => (list 3 5 "foo" 23)
+
+

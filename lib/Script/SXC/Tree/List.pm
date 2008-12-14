@@ -37,12 +37,14 @@ method compile (Object $compiler, Object $env, Bool :$allow_definitions?, Str :$
     # not empty, fetch operand and arguments
     my ($op, @args) = @{ $self->contents };
 
-    return(($optimize_tailcalls ? CompiledGoto : CompiledApplication)->new_from_uncompiled(
+    return CompiledApplication->new_from_uncompiled(
         $compiler,
         $env,
         invocant    => $op,
         arguments   => \@args,
         return_type => $return_type,
+        tailcalls   => $optimize_tailcalls,
+        $self->source_information,
       ( ($return_type eq 'list' or $return_type eq 'hash') ? (typehint => $return_type) : () ),
         options     => {
             allow_definitions   => $allow_definitions,
@@ -50,7 +52,7 @@ method compile (Object $compiler, Object $env, Bool :$allow_definitions?, Str :$
             first_class         => $compiler->force_firstclass_procedures,
             source              => $self,
         },
-    ));
+    );
 };
 
 __PACKAGE__->meta->make_immutable;

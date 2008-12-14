@@ -1,27 +1,23 @@
-package Script::SXC::Compiled::Value;
+package Script::SXC::Runtime::Symbol;
 use Moose;
 use MooseX::Method::Signatures;
 
 use Script::SXC::Types qw( Str );
 
+use Scalar::Util qw( refaddr );
+
 use namespace::clean -except => 'meta';
 use overload
-    '""'     => 'render',
+    '""'     => 'stringify',
     fallback => 1;
 
-with 'Script::SXC::TypeHinting';
-
-has content => (
-    is          => 'rw',
+has value => (
+    is          => 'ro',
     isa         => Str,
     required    => 1,
 );
 
-method compile { $self }
-
-method render {
-    return $self->content;
-};
+method stringify { sprintf '<%s (%s) at %s>', ref($self), $self->value, refaddr($self) }
 
 __PACKAGE__->meta->make_immutable;
 

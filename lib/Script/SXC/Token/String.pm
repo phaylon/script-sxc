@@ -21,7 +21,16 @@ extends 'Script::SXC::Token::Symbol';
 has '+value' => (isa => Str);
 
 method match_regex {
-    qr/" .*? (?<! \\ ) "/xsm;
+    qr/
+        (?: 
+            " 
+            .*? 
+            (?<! \\ ) 
+            " 
+          | 
+            ""
+        )
+    /xsm;
 };
 
 method build_tokens ($value) {
@@ -38,6 +47,10 @@ method transform ($stream) {
     my $app_lev = 0;
     my $state   = STATE_STRING;
     my $app_str;
+
+    # the empty string has nothing to process, so it's a special case
+    push @$current, '' 
+        if not length $rest;
 
     while (length $rest) {
         
@@ -64,7 +77,7 @@ method transform ($stream) {
         }
 
         elsif ($state eq STATE_VAR) {
-            $rest =~ s/^\s*(.*)\s*\}//
+            $rest =~ s/^\s*(.*?)\s*\}//
                 or ParseError->throw(
                     type                => 'unclosed_string_interpolation',
                     message             => 'Unclosed variable interpolation',
@@ -130,9 +143,10 @@ method transform ($stream) {
 
     @contents = ListClass->new(
         contents => [
-            BuiltinClass->new(value => 'str-append', $self->source_information),
+            BuiltinClass->new(value => 'string', $self->source_information),
             @contents,
-        ]
+        ],
+        $self->source_information,
     ) if @contents > 1;
 
     return $contents[0];

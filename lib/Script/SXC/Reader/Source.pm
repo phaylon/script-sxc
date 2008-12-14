@@ -30,6 +30,8 @@ has line_number => (
         'dec'       => 'dec_line_number',
         'reset'     => 'reset_line_number',
     },
+#    default     => 0,
+    lazy        => 1,
     required    => 1,
     predicate   => 'has_line_number',
 );
@@ -50,7 +52,11 @@ has line_content => (
 );
 
 after next_line => sub ($self) {
+#    warn "BEFORE next_line " . $self->{line_number} . "\n";
+#    warn "CONTENT " . $self->{line_content} . "\n";
     $self->initial_line_length($self->has_line_content ? length($self->line_content) : 0);
+#    warn "AFTER next_line " . $self->{line_number} . "\n";
+#    warn "CONTENT " . $self->{line_content} . "\n";
 };
 
 1;

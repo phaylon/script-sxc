@@ -54,4 +54,25 @@ sub run {
     return $value;
 }
 
+sub run_customized {
+    my $runs = 1;
+
+    my @tailcall_options   = ($ENV{TEST_TAILCALLOPT} // (0, 1));
+    my @firstclass_options = ($ENV{TEST_FIRSTCLASS}  // (0, 1));
+    my $total_runs         = @tailcall_options * @firstclass_options;
+
+    for my $tailcall (@tailcall_options) {
+        local $ENV{TEST_TAILCALLOPT} = $tailcall;
+
+        for my $firstclass (@firstclass_options) {
+            local $ENV{TEST_FIRSTCLASS} = $firstclass;
+            note(sprintf 'Test Run %d of %d', $runs++, $total_runs);
+            note('Tailcall Optimization: ' . ($tailcall   ? 'on' : 'off'));
+            note('Firstclass Procedures: ' . ($firstclass ? 'on' : 'off'));
+
+            Test::Class->runtests;
+        }
+    }
+}
+
 1;
