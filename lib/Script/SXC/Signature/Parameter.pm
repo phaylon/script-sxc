@@ -7,8 +7,11 @@ use MooseX::Types::Moose qw( Bool Str Object );
 use Perl6::Junction qw( any );
 use Perl6::Gather;
 
-use aliased 'Script::SXC::Exception::ParseError';
-use aliased 'Script::SXC::Compiled::Validation::Where', 'WhereClause';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ParseError',
+    ['Script::SXC::Compiled::Validation::Where', 'WhereClause'];
+
+use constant VariableClass => 'Script::SXC::Compiler::Environment::Variable';
 
 use namespace::clean -except => 'meta';
 
@@ -49,7 +52,7 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
 method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
 
     # we have been given just a symbol
-    if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa('Script::SXC::Compiler::Environment::Variable::Internal')) {
+    if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa(VariableClass)) {
 
         # we just have the name
         return $class->new(symbol => $item);

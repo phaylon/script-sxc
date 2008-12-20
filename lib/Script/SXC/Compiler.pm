@@ -3,10 +3,11 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Bool );
 
-use aliased 'Script::SXC::Compiler::Environment::Top',  'TopEnvironmentClass';
-use aliased 'Script::SXC::Compiled',                    'CompiledUnitClass';
-use aliased 'Script::SXC::Compiled::Values',            'CompiledValues';
-use aliased 'Script::SXC::Exception::ParseError';
+use Script::SXC::lazyload
+    ['Script::SXC::Compiler::Environment::Top',  'TopEnvironmentClass'  ],
+    ['Script::SXC::Compiled',                    'CompiledUnitClass'    ],
+    ['Script::SXC::Compiled::Values',            'CompiledValues'       ],
+    'Script::SXC::Exception::ParseError';
 
 use namespace::clean -except => 'meta';
 
@@ -28,6 +29,7 @@ has top_compiled_unit => (
     clearer     => 'clear_top_compiled_unit',
     handles     => {
         'add_compiled_expression'   => 'add_expression',
+        'add_required_package'      => 'add_required_package',
     },
 );
 

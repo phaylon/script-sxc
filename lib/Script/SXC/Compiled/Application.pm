@@ -7,10 +7,17 @@ use MooseX::Types::Moose qw( Object ArrayRef Str Bool );
 
 use Data::Dump qw( pp );
 
-use aliased 'Script::SXC::Compiled::Context',       'CompiledContext';
-use aliased 'Script::SXC::Compiled::Value',         'CompiledValue';
-use aliased 'Script::SXC::Exception::ParseError',   'ParseError';
-use aliased 'Script::SXC::Compiler::Environment::Variable';
+use constant VariableClass  => 'Script::SXC::Compiler::Environment::Variable';
+use constant ProcedureClass => 'Script::SXC::Library::Item::Procedure';
+
+use Script::SXC::lazyload
+    ['Script::SXC::Compiled::Context',      'CompiledContext'   ],
+    ['Script::SXC::Compiled::Value',        'CompiledValue'     ],
+    ['Script::SXC::Compiled::Goto',         'CompiledGoto'      ],
+    'Script::SXC::Exception::TypeError',
+    'Script::SXC::Exception::ParseError',
+    'Script::SXC::Exception::ArgumentError',
+    VariableClass;
 
 use namespace::clean -except => 'meta';
 
@@ -73,6 +80,20 @@ method render_list_application (Object $invocant!, Str $args!) {
         $self->_render_single_value_check($args, 'list');
 }
 
+method render_string_application (Object $invocant!, Str $args!, ArrayRef $raw_args?) {
+    my $method_var = Variable->new_anonymous('classmethod');
+    my $args_var   = Variable->new_anonymous('classmethod_args', sigil => '@');
+    my ($method, @args) = @$raw_args;
+    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s->%s(%s) })',
+        $args_var->render,
+        $args,
+        $method_var->render,
+        $args_var->render,
+        $invocant->render,
+        $method_var->render,
+        $args_var->render;
+}
+
 method _render_single_value_check (Str $args!, Str $type!) {
 
     my $var = Variable->new_anonymous('single_val');
@@ -80,7 +101,7 @@ method _render_single_value_check (Str $args!, Str $type!) {
     return sprintf '(do { my %s = [ %s ]; %s->throw(%s) if @{ %s } != 1; @{ %s }[0] })',
         $var->render,
         $args,
-        'Script::SXC::Exception::ArgumentError',
+        ArgumentError,
         pp( $self->source_information,
             type    => 'invalid_application_argument',
             message => "$type application expects single argument",
@@ -89,7 +110,7 @@ method _render_single_value_check (Str $args!, Str $type!) {
         $var->render;
 }
 
-method tailcall_alternative { 'Script::SXC::Compiled::Goto' }
+method tailcall_alternative { CompiledGoto }
 
 method new_from_uncompiled 
     ($class: Object $compiler!, Object $env!, Object :$invocant!, ArrayRef :$arguments!, HashRef :$options = {}, :$return_type, :$typehint, :$line_number, :$source_description, :$tailcalls, :$inline_invocant, :$inline_firstclass_args) {
@@ -109,19 +130,24 @@ method new_from_uncompiled
 
     # prepare invocant for introspection
     my $compiled_invocant = $class->prepare_uncompiled_invocant($compiler, $env, $invocant);
+#    warn "<COMPILED INVOCANT $compiled_invocant " . ($invocant->can('name') ? $invocant->name : '(novalue)') . ">\n";
+#    warn "INLINER? " . ($compiled_invocant->can('inliner') // 'no') . "\n";
+#    warn "INLINE?  " . ($inline_invocant // 'no') . "\n";
+#    warn "DOES IT? " . ($compiled_invocant->does('Script::SXC::Library::Item::Inlining') // 'no') . "\n";
 
     # procedures and inliners are compiled here
-    if (    $invocant->isa('Script::SXC::Tree::Symbol')
+    if (    ($invocant->isa('Script::SXC::Tree::Symbol') or $invocant->isa(ProcedureClass))
         and $inline_invocant
         and $compiled_invocant->does('Script::SXC::Library::Item::Inlining')
         and $compiled_invocant->inliner
-        and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
+#        and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
     ) {
+#        warn "INLINING\n";
         my $inliner  = $compiled_invocant->inliner;
         my $compiled = $inliner->($compiled_invocant, 
             compiler            => $compiler, 
             env                 => $env, 
-            name                => $invocant->value, 
+            name                => ($invocant->can('value') ? $invocant->value : $invocant->name), 
             exprs               => [@$arguments],
             symbol              => $invocant,
             allow_definitions   => $options->{allow_definitions},
@@ -164,8 +190,8 @@ method prepare_uncompiled_invocant (Object $compiler!, Object $env!, Object $inv
     return $invocant->compile($compiler, $env);
 }
 
-method prepare_uncompiled_arguments (Object $compiler!, Object $env!, ArrayRef $args) {
-    return map { $_->compile($compiler, $env) } @$args;
+method prepare_uncompiled_arguments (Object $compiler!, Object $env!, ArrayRef $args, :$fc_inline) {
+    return map { $_->compile($compiler, $env, fc_inline_optimise => $fc_inline) } @$args;
 }
 
 method render {
@@ -193,6 +219,9 @@ method render {
             }
             when ('hash') {
                 return $self->_wrap_return($self->render_hash_application($self->invocant, $args));
+            }
+            when ('string') {
+                return $self->_wrap_return($self->render_string_application($self->invocant, $args, \@raw_args));
             }
             default {
                 $self->invocant->throw_parse_error(
@@ -223,6 +252,11 @@ method render {
             [sprintf('ref(%s) eq q(CODE)',  $var_invocant->render), 'render_code_application'],
             [sprintf('ref(%s) eq q(ARRAy)', $var_invocant->render), 'render_list_application'],
             [sprintf('ref(%s) eq q(HASH)',  $var_invocant->render), 'render_hash_application'],
+            [sprintf(
+                'defined(%s) and not ref(%s)',  
+                $var_invocant->render,
+                $var_invocant->render,
+            ), 'render_string_application'],
         );
 
         $body .= sprintf 'if %s else { %s->throw(%s) }',
@@ -232,13 +266,13 @@ method render {
                     sprintf '(%s) { %s = %s }', 
                         $_->[0], 
                         $var_result->render,
-                        $self->_wrap_return($self->$method($var_invocant, $args));
+                        $self->_wrap_return($self->$method($var_invocant, $args, \@raw_args));
                 } @apply_cases
             ),
-            'Script::SXC::Exception::TypeError',
+            TypeError,
             pp( $self->source_information,
                 type    => 'invalid_invocant_type',
-                message => 'Invocant for application needs to be code, object, list or hash',
+                message => 'Invocant for application needs to be code, object, string, list or hash',
             );
 
         # code reference as invocant

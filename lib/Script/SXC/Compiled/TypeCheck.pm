@@ -6,8 +6,9 @@ use MooseX::Types::Moose qw( Object Str );
 
 use Data::Dump qw( pp );
 
-use aliased 'Script::SXC::Exception::ArgumentError';
-use aliased 'Script::SXC::Compiler::Environment::Variable';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ArgumentError',
+    'Script::SXC::Compiler::Environment::Variable';
 
 use namespace::clean -except => 'meta';
 

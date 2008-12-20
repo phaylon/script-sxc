@@ -19,7 +19,7 @@ has max => (
     predicate   => 'has_max',
 );
 
-method render_test { 
+method render_test {
       $self->has_min ? sprintf('(@_ >= %d)', $self->min) 
     : $self->has_max ? sprintf('(@_ <= %d)', $self->max)
     : croak "Either min or max are required";

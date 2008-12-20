@@ -4,10 +4,6 @@ use MooseX::Method::Signatures;
 
 use namespace::clean -except => 'meta';
 
-requires qw( accept_compiler can_accept_compiler );
-
-has compile_transform => (
-    is          => 'rw',
-);
+requires qw( accept_compiler );
 
 1;

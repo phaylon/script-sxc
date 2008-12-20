@@ -8,29 +8,27 @@ use MooseX::Types::Moose        qw( Str Object );
 use Script::SXC::Types          qw( TokenObject );
 use Script::SXC::Reader::Types  qw( SourceObject );
 
-use aliased 'Script::SXC::Exception::ParseError';
-
 # token classes
-use aliased 'Script::SXC::Token::Symbol',       'SymbolTokenClass';
-use aliased 'Script::SXC::Token::Whitespace',   'WhitespaceTokenClass';
-use aliased 'Script::SXC::Token::Number',       'NumberTokenClass';
-use aliased 'Script::SXC::Token::Keyword',      'KeywordTokenClass';
-use aliased 'Script::SXC::Token::Character',    'CharacterTokenClass';
-use aliased 'Script::SXC::Token::Boolean',      'BooleanTokenClass';
-use aliased 'Script::SXC::Token::Comment',      'CommentTokenClass';
-use aliased 'Script::SXC::Token::CellOpen',     'CellOpenTokenClass';
-use aliased 'Script::SXC::Token::CellClose',    'CellCloseTokenClass';
-use aliased 'Script::SXC::Token::Quote',        'QuoteTokenClass';
-use aliased 'Script::SXC::Token::Unquote',      'UnquoteTokenClass';
-use aliased 'Script::SXC::Token::Dot',          'DotTokenClass';
-use aliased 'Script::SXC::Token::String',       'StringTokenClass';
-
-use aliased 'Script::SXC::Token::Invalid::String',       'InvalidStringTokenClass';
-use aliased 'Script::SXC::Token::Invalid::Number',       'InvalidNumberTokenClass';
-use aliased 'Script::SXC::Token::Invalid::Keyword',      'InvalidKeywordTokenClass';
-use aliased 'Script::SXC::Token::Invalid::Boolean',      'InvalidBooleanTokenClass';
-
-use aliased 'Script::SXC::Tree', 'TreeClass';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ParseError',
+    ['Script::SXC::Token::Symbol',              'SymbolTokenClass'          ],
+    ['Script::SXC::Token::Whitespace',          'WhitespaceTokenClass'      ],
+    ['Script::SXC::Token::Number',              'NumberTokenClass'          ],
+    ['Script::SXC::Token::Keyword',             'KeywordTokenClass'         ],
+    ['Script::SXC::Token::Character',           'CharacterTokenClass'       ],
+    ['Script::SXC::Token::Boolean',             'BooleanTokenClass'         ],
+    ['Script::SXC::Token::Comment',             'CommentTokenClass'         ],
+    ['Script::SXC::Token::CellOpen',            'CellOpenTokenClass'        ],
+    ['Script::SXC::Token::CellClose',           'CellCloseTokenClass'       ],
+    ['Script::SXC::Token::Quote',               'QuoteTokenClass'           ],
+    ['Script::SXC::Token::Unquote',             'UnquoteTokenClass'         ],
+    ['Script::SXC::Token::Dot',                 'DotTokenClass'             ],
+    ['Script::SXC::Token::String',              'StringTokenClass'          ],
+    ['Script::SXC::Token::Invalid::String',     'InvalidStringTokenClass'   ],
+    ['Script::SXC::Token::Invalid::Number',     'InvalidNumberTokenClass'   ],
+    ['Script::SXC::Token::Invalid::Keyword',    'InvalidKeywordTokenClass'  ],
+    ['Script::SXC::Token::Invalid::Boolean',    'InvalidBooleanTokenClass'  ],
+    ['Script::SXC::Tree',                       'TreeClass'                 ];
 
 # FIXME what to use?
 use namespace::clean -except => 'meta';

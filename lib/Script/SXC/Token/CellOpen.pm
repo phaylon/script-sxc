@@ -3,10 +3,11 @@ use Moose;
 
 use Script::SXC::Types qw( Str );
 
-use aliased 'Script::SXC::Exception::ParseError';
-use aliased 'Script::SXC::Exception::MissingClose';
-use aliased 'Script::SXC::Tree::List', 'ListClass';
-use aliased 'Script::SXC::Tree::Hash', 'HashClass';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ParseError',
+    'Script::SXC::Exception::MissingClose',
+    ['Script::SXC::Tree::List', 'ListClass'],
+    ['Script::SXC::Tree::Hash', 'HashClass'];
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;

@@ -5,7 +5,8 @@ use MooseX::Types::Moose qw( Str Object );
 
 use Data::Dump qw( pp );
 
-use aliased 'Script::SXC::Exception::ArgumentError';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ArgumentError';
 
 use namespace::clean -except => 'meta';
 

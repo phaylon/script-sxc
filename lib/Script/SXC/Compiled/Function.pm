@@ -3,7 +3,8 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Object Bool ArrayRef );
 
-use aliased 'Script::SXC::Compiled::Goto', 'CompiledGoto';
+use Script::SXC::lazyload
+    ['Script::SXC::Compiled::Goto', 'CompiledGoto'];
 
 use namespace::clean -except => 'meta';
 

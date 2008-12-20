@@ -4,7 +4,8 @@ use MooseX::Method::Signatures;
 
 use Data::Dump qw( pp );
 
-use aliased 'Script::SXC::Compiled::Value', 'CompiledValue';
+use Script::SXC::lazyload
+    ['Script::SXC::Compiled::Value', 'CompiledValue'];
 
 use namespace::clean -except => 'meta';
 

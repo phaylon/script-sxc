@@ -2,8 +2,9 @@ package Script::SXC::Tree::Hash;
 use Moose;
 use MooseX::Method::Signatures;
 
-use aliased 'Script::SXC::Compiled::Value',       'CompiledValue';
-use aliased 'Script::SXC::Exception::ParseError', 'ParseError';
+use Script::SXC::lazyload
+    ['Script::SXC::Compiled::Value',       'CompiledValue'  ],
+    ['Script::SXC::Exception::ParseError', 'ParseError'     ];
 
 use namespace::clean -except => 'meta';
 
@@ -35,7 +36,7 @@ method compile (Object $compiler!, Object $env!) {
     my $is_key = 1;
     return CompiledValue->new(typehint => 'hash', content => sprintf '(+{( %s )})',
         join ', ',
-        map { $_->compile($compiler, $env, 'to_string', $is_key ? $is_key-- : $is_key++) } 
+        map { $_->compile($compiler, $env, 'to_string', $is_key ? $is_key-- : $is_key++)->render } 
             @{ $self->contents },
     );
 }

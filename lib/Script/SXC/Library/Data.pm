@@ -7,240 +7,35 @@ use CLASS;
 use List::Util qw( min max );
 use Scalar::Util qw( blessed refaddr );
 
-use aliased 'Script::SXC::Compiled::Value',         'CompiledValue';
-use aliased 'Script::SXC::Compiled::TypeCheck',     'CompiledTypeCheck';
-use aliased 'Script::SXC::Compiled::TypeSwitch',    'CompiledTypeSwitch';
-use aliased 'Script::SXC::Compiler::Environment::Variable';
-use aliased 'Script::SXC::Exception::ArgumentError';
+use Script::SXC::lazyload
+    ['Script::SXC::Compiled::Value',         'CompiledValue'     ],
+    ['Script::SXC::Compiled::TypeCheck',     'CompiledTypeCheck' ],
+    ['Script::SXC::Compiled::TypeSwitch',    'CompiledTypeSwitch'],
+    'Script::SXC::Compiler::Environment::Variable',
+    'Script::SXC::Exception::ArgumentError';
 
 use signatures;
 use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Library';
 
-#
-#   lists
-#
+CLASS->add_delegated_items({
 
-CLASS->add_procedure('list', 
-    firstclass  => sub { [@_] },
-    inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!) {
-        return CompiledValue->new(
-            content  => sprintf('[( %s )]', join(', ', map { $_->compile($compiler, $env)->render } @$exprs)),
-            typehint => 'list',
-        );
-    },
-);
+    'Script::SXC::Library::Data::Lists'     
+        => [qw( list list? head tail size last-index list-ref append map grep count any? all? none? pair? zip )],
 
-CLASS->add_procedure('head',
-    firstclass  => sub ($ls, $num) {
-        CLASS->runtime_arg_count_assertion('head', [@_], min => 1, max => 2);
-        CLASS->runtime_type_assertion($ls, 'list', 'head expects list as first argument');
-        $num-- if defined $num;
-        return defined $num 
-            ? [ @$ls[0 .. min($num, $#$ls)] ]
-            : ( @$ls ? $ls->[0] : undef );
-    },
-    inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 2);
-        my ($ls, $num) = @$exprs;
+    'Script::SXC::Library::Data::Hashes'    
+        => [qw( hash hash? keys values hash-ref merge )],
 
-        if (@$exprs == 1) {
-            return CompiledValue->new(content => sprintf(
-                '( (%s)->[0] )',
-                CompiledTypeCheck->new(
-                    expression  => $ls->compile($compiler, $env),
-                    type        => 'list',
-                    source_item => $ls,
-                    message     => 'first argument to head must be a list',
-                )->render,
-            ));
-        }
-        else {
-            my $ls_var  = Variable->new_anonymous('head_list');
-            my $num_var = Variable->new_anonymous('head_num');
+    'Script::SXC::Library::Data::Strings'   
+        => [qw( string string? lt? gt? le? ge? eq? ne? join )],
 
-            return CompiledValue->new(content => sprintf(
-                'do { my %s = %s; my %s = %s; [ @{( %s )}[0 .. (@{%s} > %s ? %s : scalar(@{%s})) - 1] ] }',
-                $ls_var->render,
-                CompiledTypeCheck->new(
-                    expression  => $ls->compile($compiler, $env),
-                    type        => 'list',
-                    source_item => $ls,
-                    message     => 'first argument to head must be a list',
-                )->render,
-                $num_var->render,
-                $num->compile($compiler, $env)->render,
-                $ls_var->render,
-                $ls_var->render,
-                $num_var->render,
-                $num_var->render,
-                $ls_var->render,
-            ), typehint => 'list');
-        }
-    },
-);
+    'Script::SXC::Library::Data::Numbers'   
+        => [qw( + - * -- ++ / < > <= >= == != = abs mod even? odd? min max )],
 
-CLASS->add_procedure('tail',
-    firstclass => sub ($ls, $num) {
-        CLASS->runtime_arg_count_assertion('tail', [@_], min => 1, max => 2);
-        CLASS->runtime_type_assertion($ls, 'list', 'tail expects list as first argument');
-        $num = $#$ls unless defined $num;
-        return [ @$ls[ (@$ls - min(scalar(@$ls), $num)) .. $#$ls ] ];
-    },
-    inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 2);
-        my ($ls, $num) = @$exprs;
-
-        my $ls_var    = Variable->new_anonymous('head_list');
-        my $num_var   = Variable->new_anonymous('head_num');
-        my $start_var = Variable->new_anonymous('head_start_at');
-
-        return CompiledValue->new(content => sprintf(
-            'do { my %s = %s; my %s = %s; my %s = %s; [ %s ] }',
-            $ls_var->render,
-            CompiledTypeCheck->new(
-                expression  => $ls->compile($compiler, $env),
-                type        => 'list',
-                source_item => $ls,
-                message     => 'first argument to head must be a list',
-            )->render,
-            $num_var->render,
-            ( $num ? $num->compile($compiler, $env)->render : '0' ),
-            $start_var->render,
-            sprintf(
-                '( $#{ %s } - (%s - 1) )',
-                $ls_var->render,
-              ( $num ? $num_var->render : sprintf('$#{ %s }', $ls_var->render) ),
-            ),
-            sprintf(
-                '@{ %s }[ (%s < 0 ? 0 : %s) .. $#{ %s } ]',
-                $ls_var->render,
-                $start_var->render,
-                $start_var->render,
-                $ls_var->render,
-            ),
-        ), typehint => 'list');
-    },
-);
-
-CLASS->add_procedure('size',
-    firstclass => sub ($ls) { 
-        CLASS->runtime_arg_count_assertion('size', [@_], min => 1, max => 1);
-        CLASS->runtime_type_assertion($ls, 'list', 'size requires list as argument');
-        return scalar @$ls;
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, Str :$name!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
-
-        return CompiledValue->new(
-            content  => sprintf('scalar(@{( %s )})',
-                CompiledTypeCheck->new(
-                    expression  => $exprs->[0]->compile($compiler, $env),
-                    type        => 'list',
-                    source_item => $exprs->[0],
-                    message     => 'argument to size must be a list',
-                )->render,
-            ),
-            typehint => 'number',
-        );
-    },
-);
-
-CLASS->add_procedure('last-index',
-    firstclass => sub ($ls) { 
-        CLASS->runtime_arg_count_assertion('last-index', [@_], min => 1, max => 1);
-        CLASS->runtime_type_assertion($ls, 'list', 'last-index requires list as argument');
-        return $#{ $ls };
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs, :$name, :$error_cb) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
-
-        return CompiledValue->new(
-            content  => sprintf('($#{( %s )})', 
-                CompiledTypeCheck->new(
-                    expression  => $exprs->[0]->compile($compiler, $env),
-                    type        => 'list',
-                    source_item => $exprs->[0],
-                    message     => 'argument to last-index must be a list',
-                )->render,
-            ),
-            typehint => 'number',
-        );
-    },
-);
-
-CLASS->add_procedure('list-ref',
-    firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('list-ref', [@_], min => 2, max => 2);
-        CLASS->runtime_type_assertion($_[0], 'list', 'list-ref expects a list as first argument');
-        return $_[0]->[ $_[1] ];
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs, :$name, :$error_cb) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);
-
-        return CompiledValue->new(
-            content => sprintf('( (%s)->[%s] )', 
-                CompiledTypeCheck->new(
-                    expression  => $exprs->[0]->compile($compiler, $env),
-                    type        => 'list',
-                    source_item => $exprs->[0],
-                    message     => 'first argument to list-ref must be a list',
-                )->render,
-                $exprs->[1]->compile($compiler, $env)->render,
-            ),
-        );
-    },
-);
-
-CLASS->add_procedure('append',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('append', [@_], min => 2);
-        CLASS->runtime_type_assertion($_[ $_ ], 'list', "Invalid argument $_: append expects only list arguments")
-            for 0 .. $#_;
-        return [ map { @$_ } @_ ];
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2);
-        return CompiledValue->new(content => sprintf(
-            '[ %s ]',
-            join(', ', map {
-                sprintf '(@{( %s )})', CompiledTypeCheck->new(
-                    expression  => $exprs->[ $_ ]->compile($compiler, $env),
-                    type        => 'list',
-                    source_item => $exprs->[ $_ ],
-                    message     => "Invalid argument $_: append expects only list arguments",
-                )->render,
-            } 0 .. $#$exprs),
-        ), typehint => 'list');
-    },
-);
-
-CLASS->add_procedure('list?',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('list?', [@_], min => 1);
-        (ref($_) and ref($_) eq 'ARRAY') or return undef
-            for @_;
-        return 1;
-    },
-    inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
-        my $anon = Variable->new_anonymous('list_p_arg');
-        return CompiledValue->new(content => sprintf(
-            '( (%s) or undef )',
-            join(
-                ' and ',
-                map {
-                    sprintf 'do { my %s = %s; (ref(%s) and ref(%s) eq q(ARRAY)) }',
-                        $anon->render,
-                        $_->compile($compiler, $env)->render,
-                        $anon->render,
-                        $anon->render,
-                } @$exprs,
-            ),
-        ), typehint => 'bool');
-    },
-);
+    'Script::SXC::Library::Data::Code'
+        => [qw( code? curry rcurry )],
+});
 
 #   list-ref ideas:
 #
@@ -258,159 +53,58 @@ CLASS->add_procedure('list?',
 #       (foo 1 :bar 0 :x)           => 2
 #       (set! (foo 1 :foo 2) 4)     => 4 (list 1 (hash :foo (list 2 3 4) :bar ...))
 #
-
 #
-#   hashes
 #
-
-CLASS->add_procedure('hash', 
-    firstclass => sub {
-        ArgumentError->throw_to_caller(
-            type    => 'invalid_argument_list',
-            message => "hash constructor expects even size list of key/value pairs",
-        ) if @_ % 2;
-        return +{ @_ };
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
-        (@$exprs ? $exprs->[-1] : $symbol)->throw_parse_error(
-            invalid_argument_list => "hash constructor expects even sized list of key/value pairs",
-        ) if @$exprs % 2;
-        return CompiledValue->new(
-            content  => sprintf('+{( %s )}', join(', ', map { $_->compile($compiler, $env, to_string => 1)->render } @$exprs)),
-            typehint => 'hash',
-        );
-    },
-);
-
-CLASS->add_procedure('values',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('values', [@_], min => 1, max => 1);
-        CLASS->runtime_type_assertion($_[0], 'hash', 'values expects a hash as argument');
-        return [ values %{ $_[0] } ];
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
-        return CompiledValue->new(content => sprintf(
-            '[ values %%{ %s } ]',
-            CompiledTypeCheck->new(
-                expression  => $exprs->[0]->compile($compiler, $env),
-                type        => 'hash',
-                source_item => $exprs->[0],
-                message     => "$name expects a hash as argument",
-            )->render,
-        ), typehint => 'list');
-    },
-);
-
-CLASS->add_procedure('keys',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('keys', [@_], min => 1, max => 1);
-        CLASS->runtime_type_assertion($_[0], 'hash', 'keys expects a hash as argument');
-        return [ keys %{ $_[0] } ];
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
-        return CompiledValue->new(content => sprintf(
-            '[ keys %%{ %s } ]',
-            CompiledTypeCheck->new(
-                expression  => $exprs->[0]->compile($compiler, $env),
-                type        => 'hash',
-                source_item => $exprs->[0],
-                message     => "$name expects a hash as argument",
-            )->render,
-        ), typehint => 'list');
-    },
-);
-
-CLASS->add_procedure('hash-ref',
-    firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('hash-ref', [@_], min => 2, max => 2);
-        CLASS->runtime_type_assertion($_[0], 'hash', 'hash-ref expects a hash as first argument');
-        return $_[0]->{ $_[1] };
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs, :$name, :$error_cb) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);
-
-        return CompiledValue->new(
-            content => sprintf('( (%s)->{%s} )', 
-                CompiledTypeCheck->new(
-                    expression  => $exprs->[0]->compile($compiler, $env),
-                    type        => 'hash',
-                    source_item => $exprs->[0],
-                    message     => 'first argument to hash-ref must be a hash',
-                )->render,
-                $exprs->[1]->compile($compiler, $env, to_string => 1)->render,
-            ),
-        );
-    },
-);
-
-CLASS->add_procedure('merge',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('merge', [@_], min => 2);
-        CLASS->runtime_type_assertion($_[ $_ ], 'hash', "Invalid argument $_: merge expects only hash arguments")
-            for 0 .. $#_;
-        return +{ map { (%$_) } @_ };
-    },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2);
-        return CompiledValue->new(content => sprintf(
-            '(+{( %s )})',
-            join(', ', map {
-                sprintf '(%%{( %s )})', CompiledTypeCheck->new(
-                    expression  => $exprs->[ $_ ]->compile($compiler, $env),
-                    type        => 'hash',
-                    source_item => $exprs->[ $_ ],
-                    message     => "Invalid argument $_: $name expects only hash arguments",
-                )->render,
-            } 0 .. $#$exprs),
-        ), typehint => 'hash');
-    },
-);
-
-CLASS->add_procedure('hash?',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('hash?', [@_], min => 1);
-        (ref($_) and ref($_) eq 'HASH') or return undef
-            for @_;
-        return 1;
-    },
-    inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
-        my $anon = Variable->new_anonymous('hash_p_arg');
-        return CompiledValue->new(content => sprintf(
-            '( (%s) or undef )',
-            join(
-                ' and ',
-                map {
-                    sprintf 'do { my %s = %s; (ref(%s) and ref(%s) eq q(HASH)) }',
-                        $anon->render,
-                        $_->compile($compiler, $env)->render,
-                        $anon->render,
-                        $anon->render,
-                } @$exprs,
-            ),
-        ), typehint => 'bool');
-    },
-);
-
+#   also:
 #
-#   strings
+#       (<-- (λ (n) (* n 2))
+#            abs
+#            (let ((x 1))
+#              (λ () (if (< x 10)
+#                        (set! x (++ x))
+#                        #f))))
 #
-
-CLASS->add_procedure('string',
-    firstclass => sub { join '', @_ },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
-        return CompiledValue->new(content => sprintf(
-            'join("", %s)',
-            join(', ', map { $_->compile($compiler, $env, to_string => 1)->render } @$exprs),
-        ), typehint => 'string')
-    },
-);
 
 #
 #   general
 #
+
+CLASS->add_procedure('false?',
+    firstclass => sub {
+        return 1 unless @_;
+        not $_ or return undef for @_;
+        return 1;
+    },
+    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
+        # TODO: single value optimization
+        my $values = Variable->new_anonymous('false_test_values', sigil => '@');
+        return CompiledValue->new(content => sprintf 
+            '(do { my %s = (%s); ( not(grep { $_ } %s) ? 1 : undef ) })', 
+            $values->render,
+            join(', ', map { $_->compile($compiler, $env)->render } @$exprs),
+            $values->render,
+        );
+    },
+);
+
+CLASS->add_procedure('true?',
+    firstclass => sub {
+        return undef unless @_;
+        $_ or return undef for @_;
+        return $_[-1];
+    },
+    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
+        # TODO: single value optimization
+        my $values = Variable->new_anonymous('true_test_values', sigil => '@');
+        return CompiledValue->new(content => sprintf 
+            '(do { my %s = (%s); ( not(grep { not($_) } %s) ? %s : undef ) })', 
+            $values->render,
+            join(', ', map { $_->compile($compiler, $env)->render } @$exprs),
+            $values->render,
+            $values->render_array_access(-1),
+        );
+    },
+);
 
 CLASS->add_procedure('empty?',
     firstclass => sub {
@@ -553,20 +247,6 @@ CLASS->add_procedure('copy',
             message     => 'Invalid argument type: Unable to make a copy of \'%s\' Need either list, hash, string, symbol or keyword',
             error_type  => 'invalid_argument_type',
             error_class => ArgumentError,
-        );
-    },
-);
-
-CLASS->add_procedure('~~',
-    firstclass => sub {
-        CLASS->runtime_arg_count_assertion('~~', [@_], min => 2, max => 2);
-        return( $_[0] ~~ $_[1] ? 1 : undef );
-    },
-    inliner => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);
-        return CompiledValue->new(content => sprintf 
-            '( (%s ~~ %s) ? 1 : undef )',
-            map { $_->compile($compiler, $env) } @$exprs,
         );
     },
 );

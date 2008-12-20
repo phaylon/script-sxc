@@ -5,6 +5,7 @@ use MooseX::Method::Signatures;
 
 use Script::SXC::Types  qw( ArrayRef Bool Str );
 use Scalar::Util        qw( blessed );
+use List::MoreUtils     qw( uniq );
 
 use namespace::clean -except => 'meta';
 
@@ -37,10 +38,14 @@ has pre_text => (
 );
 
 has required_packages => (
+    metaclass       => 'Collection::Array',
     is              => 'rw',
     isa             => ArrayRef[Str],
     required        => 1,
     default         => sub { [] },
+    provides        => {
+        'push'          => 'add_required_package',
+    },
 );
 
 has required_types => (
@@ -78,7 +83,7 @@ method get_full_body {
         ( $self->use_warnings ? 'use warnings'        : 'no warnings' ),
         'use 5.010',
         ( $self->pre_text     ? $self->pre_text . ';' : () ),
-        ( map { sprintf 'require %s', $_ } @{ $self->required_packages } ),
+        ( map { sprintf 'require %s', $_ } uniq @{ $self->required_packages } ),
         $self->get_body;
 };
 

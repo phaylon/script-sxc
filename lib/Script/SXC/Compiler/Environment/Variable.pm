@@ -3,11 +3,13 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Str Object Int );
 
-use aliased 'Script::SXC::Compiler::Environment::Variable::Outer';
+use Script::SXC::lazyload
+    'Script::SXC::Compiler::Environment::Variable::Outer';
 
 use namespace::clean -except => 'meta';
 
 with 'Script::SXC::TypeHinting';
+with 'Script::SXC::SourcePosition';
 
 my $VarCounter = 0;
 
@@ -35,19 +37,29 @@ method render {
     return $self->sigil . $self->identifier;
 }
 
+method render_array_access (Int $index!) {
+    return '$' . $self->identifier . '[' . $index . ']';
+}
+
 method compile { $self }
 
 method as_outer {
     return Outer->new(%$self);
 }
 
-method new_anonymous ($class: Str $info?) {
+method new_anonymous ($class: Str $info?, Str :$sigil?, :$line_number?, :$source_description?) {
     $info = '' unless defined $info;
 
     # prepare identifier
     my $id = $class->_counted_type('anon') . ($info ? "_$info" : '');
 
-    return $class->new(identifier => $id, symbol_name => "<$id>");
+    return $class->new(
+        identifier  => $id,
+        symbol_name => "<$id>",
+        ( defined($line_number)         ? (line_number => $line_number)                 : () ),
+        ( defined($source_description)  ? (source_description => $source_description)   : () ),
+        ( defined($sigil)               ? (sigil => $sigil)                             : () ),
+    );
 }
 
 method new_from_name ($class: Str $name!, Str :$prefix?) {

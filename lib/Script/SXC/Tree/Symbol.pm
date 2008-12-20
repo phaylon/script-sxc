@@ -6,8 +6,9 @@ use MooseX::Types::Moose qw( Str );
 
 use Data::Dump qw( pp );
 
-use aliased 'Script::SXC::Runtime::Symbol', 'RuntimeSymbol';
-use aliased 'Script::SXC::Compiled::Value', 'CompiledValue';
+use Script::SXC::lazyload
+    ['Script::SXC::Runtime::Symbol', 'RuntimeSymbol'],
+    ['Script::SXC::Compiled::Value', 'CompiledValue'];
 
 use namespace::clean -except => 'meta';
 
@@ -20,11 +21,9 @@ method compile (Object $compiler, Object $env, Bool :$fc_inline_optimise?) {
     # find var in environment
     my $item = $env->find_variable($self);
 
-    # can create inline
-#    warn "TEST INLINE [$fc_inline_optimise]\n";
-    if (0 and $fc_inline_optimise and $item->can('does') and $item->does('Script::SXC::Library::Item::AcceptCompiler') and $item->can_accept_compiler) {
-        warn "INLINE\n";
-        return $item->accept_compiler($compiler, $env, $self);
+    # wants a compiler
+    if ($item->can('does') and $item->does('Script::SXC::Library::Item::AcceptCompiler')) {
+        $item->accept_compiler($compiler, $env);
     }
 
     # return uncompiled item

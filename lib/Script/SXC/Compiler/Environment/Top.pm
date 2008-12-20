@@ -10,7 +10,7 @@ use namespace::clean -except => 'meta';
 extends 'Script::SXC::Compiler::Environment';
 
 my @DefaultLibraries = 
-    map { Class::MOP::load_class($_) and $_ }
+    map { Class::MOP::load_class($_); $_ }
     map { "Script::SXC::Library::$_" }
         qw( Core Data );
 
@@ -40,9 +40,9 @@ method find_library_item (Str $name!) {
   LIBRARY:  
     for my $lib ($self->library_objects) {
         #warn "CHECKING LIBRARY $lib FOR $name\n";
-        my $item = $lib->get($name)
+        $lib->has($name)
             or next LIBRARY;
-        return $item;
+        return $lib->get($name);
     }
 
     return undef;

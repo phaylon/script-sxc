@@ -6,7 +6,8 @@ use MooseX::Types::Moose qw( Object Str ArrayRef HashRef );
 
 use Data::Dump qw( pp );
 
-use aliased 'Script::SXC::Compiler::Environment::Variable';
+use Script::SXC::lazyload
+    'Script::SXC::Compiler::Environment::Variable';
 
 use namespace::clean -except => 'meta';
 

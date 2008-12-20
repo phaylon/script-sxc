@@ -34,11 +34,11 @@ method run (HashRef $options!, ArrayRef $args!) {
         my $compiled = $self->compile_tree($tree);
         ''. $compiled->get_full_body;
     };
-    warn "BADA\n";
+#    warn "BADA\n";
     print $@ and exit if $@;
 
     open my $out_fh, '>:utf8', $out_filename;
-    print $out_fh 'use Script::SXC::Library::Core;' . $body;
+    print $out_fh $body;
     #warn "DONE $out_filename\n";
     $self->run_compiled_file($out_filename);
 }

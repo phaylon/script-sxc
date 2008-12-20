@@ -4,10 +4,14 @@ use MooseX::Method::Signatures;
 use MooseX::AttributeHelpers;
 use MooseX::Types::Moose qw( Str Object ArrayRef );
 
-use aliased 'Script::SXC::Exception::ParseError';
-use aliased 'Script::SXC::Signature::Parameter';
-use aliased 'Script::SXC::Compiled::Value',             'CompiledValue';
-use aliased 'Script::SXC::Compiled::Validation::Count', 'CompiledArgCountCheck';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ParseError',
+    'Script::SXC::Signature::Parameter',
+    ['Script::SXC::Compiled::Value',             'CompiledValue'        ],
+    ['Script::SXC::Compiled::Validation::Count', 'CompiledArgCountCheck'];
+
+use constant ListClass     => 'Script::SXC::Tree::List';
+use constant VariableClass => 'Script::SXC::Compiler::Environment::Variable';
 
 use namespace::clean -except => 'meta';
 
@@ -34,7 +38,7 @@ has rest_parameter => (
 
 method compile_validations (Object $compiler!, Object $env!) {
     return [ 
-        CompiledArgCountCheck->new(min => $self->fixed_parameter_count),
+        ( $self->fixed_parameter_count ? CompiledArgCountCheck->new(min => $self->fixed_parameter_count) : () ),
         ( $self->rest_parameter ? () : CompiledArgCountCheck->new(max => $self->fixed_parameter_count) ),
         ( map { @{ $_->compile_validations($compiler, $env) } } @{ $self->fixed_parameters } ),
         ( $self->rest_parameter
@@ -67,7 +71,7 @@ method as_definition_map {
 method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
 
     # grab-all when symbol is given
-    if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa('Script::SXC::Compiler::Environment::Variable::Internal')) {
+    if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa(VariableClass)) {
         return $class->new(rest_parameter => Parameter->new_from_tree($item, $compiler, $env));
     }
 

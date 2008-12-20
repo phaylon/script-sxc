@@ -2,7 +2,8 @@ package Script::SXC::Compiled::Conditional;
 use Moose;
 use MooseX::Method::Signatures;
 
-use aliased 'Script::SXC::Compiler::Environment::Variable';
+use Script::SXC::lazyload
+    'Script::SXC::Compiler::Environment::Variable';
 
 use Script::SXC::Types qw( Object );
 

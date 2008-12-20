@@ -3,7 +3,8 @@ use Moose;
 
 use Script::SXC::Types qw( Str );
 
-use aliased 'Script::SXC::Exception::ParseError';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ParseError';
 
 use namespace::clean -except => 'meta';
 use Method::Signatures;

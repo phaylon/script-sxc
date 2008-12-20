@@ -8,11 +8,14 @@ use MooseX::Types::Moose    qw( Str ArrayRef HashRef Object );
 use CLASS;
 use Scalar::Util qw( weaken refaddr );
 
-use aliased 'Script::SXC::Compiler::Environment::Variable';
-use aliased 'Script::SXC::Compiler::Environment::Variable::Outer';
-use aliased 'Script::SXC::Compiler::Environment::Definition';
-use aliased 'Script::SXC::Compiler::Environment::Modification';
-use aliased 'Script::SXC::Exception::UnboundVar', 'UnboundVarException';
+use constant VariableClass => 'Script::SXC::Compiler::Environment::Variable';
+
+use Script::SXC::lazyload
+    VariableClass,
+    'Script::SXC::Compiler::Environment::Variable::Outer',
+    'Script::SXC::Compiler::Environment::Definition',
+    'Script::SXC::Compiler::Environment::Modification',
+    ['Script::SXC::Exception::UnboundVar', 'UnboundVarException'];
 
 use namespace::clean -except => 'meta';
 
@@ -49,7 +52,7 @@ has child_class => (
 
 method create_variable (Object $symbol, HashRef :$params = {}) {
     return $symbol
-        if $symbol->isa('Script::SXC::Compiler::Environment::Variable::Internal');
+        if $symbol->isa(VariableClass);
 
     my $name = $symbol->value;
     
@@ -222,7 +225,7 @@ method wrap_external_variable (Object $variable!, Object $env!) {
 
     # same environment, return direct var
     return $variable 
-        if not($variable->isa('Script::SXC::Environment::Variable'))
+        if not($variable->isa('Script::SXC::Compiler::Environment::Variable'))
         or refaddr($self) eq refaddr($env);
 
     # outer variables get wrapped for typehinting adjustments

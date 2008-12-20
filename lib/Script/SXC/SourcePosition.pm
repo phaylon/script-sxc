@@ -3,7 +3,8 @@ use Moose::Role;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Str Int Maybe );
 
-use aliased 'Script::SXC::Exception::ParseError';
+use Script::SXC::lazyload
+    'Script::SXC::Exception::ParseError';
 
 use namespace::clean -except => 'meta';
 
@@ -31,7 +32,7 @@ method new_item_with_source (Str $item_type!, HashRef $args = {}) {
 }
 
 method source_information () {
-    return map { ($_ => $self->$_) } 
+    return map { ($self->$_ ? ($_ => $self->$_) : ()) } 
         qw( line_number source_description char_number );
 }
 

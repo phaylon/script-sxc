@@ -3,9 +3,14 @@ use 5.010;
 use strict;
 use warnings;
 
-use aliased 'Script::SXC::Runtime::Keyword', 'RuntimeKeyword';
-use aliased 'Script::SXC::Exception::ArgumentError';
-use aliased 'Script::SXC::Exception::TypeError';
+use constant RuntimeKeywordClass => 'Script::SXC::Runtime::Keyword';
+
+use Script::SXC::lazyload
+    [RuntimeKeywordClass, 'RuntimeKeyword'],
+    'Script::SXC::Exception::ArgumentError',
+    'Script::SXC::Exception::TypeError';
+
+use Scalar::Util qw( blessed );
 
 use Sub::Exporter -setup => {
     exports => [qw(
@@ -45,6 +50,15 @@ sub apply {
 
     # reformat arguments to apply to
     push @args, @{ pop @args };
+
+    # invocant swap for keywords
+    if (blessed($invocant) and $invocant->isa(RuntimeKeywordClass)) {
+        my $new_invocant = shift @args;
+        unshift @args, $invocant;
+        $invocant = $new_invocant;
+    }
+
+    # prepare for goto
     @_ = @args;
 
     # dispatch based on type
@@ -67,11 +81,19 @@ sub apply {
             return $invocant->{ $args[0] };
         }
         default {
-            TypeError->throw(
-                type    => 'invalid_invocant_type',
-                message => 'Invocant for application needs to be code, object, list or hash',
-                # TODO missing source information
-            );
+            if (defined $invocant and not ref $invocant) {
+                ArgumentError->throw_to_caller(
+                    type    => 'missing_arguments',
+                    message => 'Missing arguments for class method call on string',
+                ) unless @args == 1;
+            }
+            else {
+                TypeError->throw(
+                    type    => 'invalid_invocant_type',
+                    message => 'Invocant for application needs to be code, object, list or hash',
+                    # TODO missing source information
+                );
+            }
         }
     }
 }

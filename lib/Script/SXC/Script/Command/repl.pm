@@ -109,15 +109,15 @@ method run {
 
             # the error was only an unclosed expression, we can continue on the next line
             if (blessed($e) and $e->isa('Script::SXC::Exception::MissingClose')) {
-                #warn pp($e), "\n";
                 push @buf, $line;
                 $chr = $e->char_number;
                 next READ;
             }
 
             # normal error
-            $self->print_info($body, no_prefix => 1, filter => sub { "# $_" });
-            $self->print_warning("An error occurred during $stage: $e");
+            warn "An error occured during $stage:\n\t$e\n";
+            #$self->print_info($body, no_prefix => 1, filter => sub { "# $_" });
+            #$self->print_warning("An error occurred during $stage: $e");
             @buf = ();
             next READ;
         }

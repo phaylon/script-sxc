@@ -52,6 +52,13 @@ has _compiler => (
     },
 );
 
+has force_firstclass_procedures => (
+    is              => 'rw',
+    isa             => Bool,
+    default         => 0,
+    documentation   => 'force the use of library-loaded firstclass procedures',
+);
+
 has optimize_tailcalls => (
     is              => 'rw',
     isa             => Bool,
@@ -61,7 +68,12 @@ has optimize_tailcalls => (
 
 method _build_default_reader { ReaderClass->new }
 
-method _build_default_compiler { CompilerClass->new(optimize_tailcalls => $self->optimize_tailcalls) }
+method _build_default_compiler { 
+    return CompilerClass->new(
+        optimize_tailcalls          => $self->optimize_tailcalls,
+        force_firstclass_procedures => $self->force_firstclass_procedures,
+    );
+}
 
 method print_info (Str $message, Bool :$no_prefix?, CodeRef :$filter) { 
     InfoMessage->new(
