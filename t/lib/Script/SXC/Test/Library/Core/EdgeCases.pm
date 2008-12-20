@@ -14,7 +14,7 @@ sub T900_edge_cases: Tests {
     {   my $code = q{
             (define (foo x) x)
             (define (bar y) (foo y))    ; this should not be hardhinted
-            (set! foo 17)
+            (set! foo #f)
             (bar 23)
         };
         throws_ok { $self->run($code) } 'Script::SXC::Exception::TypeError',

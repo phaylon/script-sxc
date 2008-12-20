@@ -140,7 +140,7 @@ method new_from_uncompiled
         and $inline_invocant
         and $compiled_invocant->does('Script::SXC::Library::Item::Inlining')
         and $compiled_invocant->inliner
-#        and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
+        and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
     ) {
 #        warn "INLINING\n";
         my $inliner  = $compiled_invocant->inliner;
