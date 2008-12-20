@@ -214,6 +214,23 @@ sub T640_predicate_pair: Tests {
     like $@, qr/pair\?/, 'error message contains "pair?"';
 }
 
+sub T700_zip: Tests {
+    my $self = self;
+
+    is_deeply self->run('(zip + (list 3 4) (list 5 6))'), [8, 10], 'zipping two lists with builtin returns correct result';
+    is_deeply self->run('(zip apply (list + -) (list (list 10 5) (list 30 13)))'), [15, 17], 'apply zip trick returns correct result';
+    is_deeply self->run('(zip (λ l l) (list 4 5) (list 7 8))'), [[4, 7], [5, 8]], 'zipping two lists with lambda returns correct result';
+    is_deeply self->run('(zip + (list 3 4 5) (list 6 7 8) (list 7 8 9))'), [16, 19, 22], 'zippint three lists returns correct result';
+    throws_ok { $self->run('(zip + (list 2 3))') } 'Script::SXC::Exception', 'zip with two arguments throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/zip/, 'error message contains "zip"';
+    throws_ok { $self->run('(zip #f (list 2 3) (list 4 5))') } 'Script::SXC::Exception', 'zip with invalid applicant throws exception';
+    like $@, qr/appl/i, 'error message contains "appl"';
+    throws_ok { $self->run('(zip + { x: 3 } (list 4 5))') } 'Script::SXC::Exception', 'zip with non list throws exception';
+    like $@, qr/list/i, 'error message contains "list"';
+    like $@, qr/zip/, 'error message contains "zip"';
+}
+
 sub T900_nested_list_proc: Tests {
     is_deeply self->run('(grep (map (grep (list 1 2 3 4 5 6) odd?) (λ (x) { x: x lt2: (> x 2) })) :lt2)'),
               [{ x => 3, lt2 => 1 }, { x => 5, lt2 => 1 }],

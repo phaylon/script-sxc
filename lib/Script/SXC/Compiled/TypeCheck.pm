@@ -12,6 +12,8 @@ use Script::SXC::lazyload
 
 use namespace::clean -except => 'meta';
 
+with 'Script::SXC::CompileToSelf';
+
 has expression => (
     is          => 'rw',
     isa         => Object,

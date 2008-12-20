@@ -53,7 +53,7 @@ CLASS->add_procedure('apply',
             return_type                 => 'scalar',
             inline_invocant             => 0,
             inline_firstclass_args      => 0,
-            $symbol->source_information,
+            ($symbol->can('source_information') ? $symbol->source_information : ()),
             options => {
                 optimize_tailcalls  => $compiler->optimize_tailcalls,
                 first_class         => $compiler->force_firstclass_procedures,

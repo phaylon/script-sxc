@@ -10,6 +10,7 @@ use overload
     fallback => 1;
 
 with 'Script::SXC::TypeHinting';
+with 'Script::SXC::SourcePosition';
 
 has content => (
     is          => 'rw',

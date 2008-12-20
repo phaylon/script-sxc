@@ -10,12 +10,12 @@ use namespace::clean -except => 'meta';
 
 has line_number => (
     is          => 'rw',
-    isa         => Int,
+    isa         => Maybe[Int],
 );
 
 has source_description => (
     is          => 'rw',
-    isa         => Str,
+    isa         => Maybe[Str],
 );
 
 has char_number => (

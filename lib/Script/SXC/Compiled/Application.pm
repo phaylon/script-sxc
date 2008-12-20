@@ -250,7 +250,7 @@ method render {
 
         my @apply_cases = (
             [sprintf('ref(%s) eq q(CODE)',  $var_invocant->render), 'render_code_application'],
-            [sprintf('ref(%s) eq q(ARRAy)', $var_invocant->render), 'render_list_application'],
+            [sprintf('ref(%s) eq q(ARRAY)', $var_invocant->render), 'render_list_application'],
             [sprintf('ref(%s) eq q(HASH)',  $var_invocant->render), 'render_hash_application'],
             [sprintf(
                 'defined(%s) and not ref(%s)',  

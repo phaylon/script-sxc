@@ -408,7 +408,14 @@ CLASS->add_procedure('zip',
                 ),
             ),
             $lists_var->render,
-            join(', ', map { $_->compile($compiler, $env)->render } @lists),
+            join(', ', map { 
+                CompiledTypeCheck->new(
+                    expression  => $lists[ $_ ]->compile($compiler, $env),
+                    type        => 'list',
+                    source_item => $symbol,
+                    message     => "Argument @{[ $_ + 1 ]} to $name is not a list",
+                )->render,
+            } 0 .. $#lists),
             sprintf(
                 'map { my %s = $_; %s } 0 .. List::Util::min(map { $#$_ } %s)',
                 $index_var->render,
@@ -418,20 +425,22 @@ CLASS->add_procedure('zip',
                     invocant        => $zipper_var,
                     tailcalls       => 0,
                     return_type     => 'scalar',
-                    inline_invocant => 1,
+                    inline_invocant => not($zipper_compiled->isa(ProcedureClass) and $zipper_compiled->name eq 'apply'),
                     options         => {
                         optimize_tailcalls  => 0,
                         first_class         => $compiler->force_firstclass_procedures,
-                        source              => $self,
+                        source              => $symbol,
                     },
                     arguments       => [
                         map {
-                            CompiledValue->new(content => sprintf
-                                '(@{( %s )}[ %s ])',
-                                $lists_var->render_array_access($_),
-                                $index_var->render,
+                            CompiledValue->new(
+                                content => sprintf(
+                                    '(@{( %s )}[ %s ])',
+                                    $lists_var->render_array_access($_),
+                                    $index_var->render,
+                                ),
                             );
-                        } 0 .. $#lists
+                        } 0 .. $#lists,
                     ],
                     $symbol->source_information,
                 )->render,
