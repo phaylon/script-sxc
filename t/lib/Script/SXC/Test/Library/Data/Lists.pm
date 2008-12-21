@@ -207,11 +207,11 @@ sub T631_predicate_all: Tests {
     is self->run('(all? (list 4) true?)'), 1, 'all? returns true for single true value list';
     is self->run('(all? (list 1 2 3 0 4) true?)'), undef, 'all? returns undefined value if test is negative on one element';
     is self->run('(all? (list #f 0 "") true?)'), undef, 'all? returns undefined value on all negative elements';
-    is self->run('(all? (list :x :y) { x: 2 y: 1 z: 0 })'), 1, 'true all? hash application returns true';
+    is self->run('(all? (list :x :y)    { x: 2 y: 1 z: 0 })'), 1, 'true all? hash application returns true';
     is self->run('(all? (list :x :y :z) { x: 2 y: 1 z: 0 })'), undef, 'false all? hash application returns undefined value';
     is self->run('(all? (list { x: 3 } { x: 5 }) :x)'), 1, 'true all? swapped invocant hash application returns true';
     is self->run('(all? (list { x: 3 } { x: 0 }) :x)'), undef, 'false all? swapped invocant hash application returns undefined value';
-    is self->run('(all? (list 0 1 2) (list 3 2 1 0))'), 1, 'true all? list application returns true';
+    is self->run('(all? (list 0 1 2)   (list 3 2 1 0))'), 1, 'true all? list application returns true';
     is self->run('(all? (list 0 1 2 3) (list 3 2 1 0))'), undef, 'false all? list application returns undefined value';
     throws_ok { $self->run('(all? (list 2 3))') } 'Script::SXC::Exception', 'all? with single argument throws exception';
     like $@, qr/missing/i, 'error message contains "missing"';
@@ -221,6 +221,31 @@ sub T631_predicate_all: Tests {
     like $@, qr/all\?/, 'error message contains "all?"';
     throws_ok { $self->run('(all? (hash x: 23) (λ x x))') } 'Script::SXC::Exception', 'all? with non list throws exception';
     like $@, qr/all\?/, 'error message contains "all?"';
+    like $@, qr/list/i, 'error message contains "list"';
+    like $@, qr/first argument/i, 'error message contains "first argument"';
+}
+
+sub T632_predicate_none: Tests {
+    my $self = self;
+
+    is self->run('(none? (list 1 2 3 4 "foo") false?)'), 1, 'none? returns true for all true values';
+    is self->run('(none? (list 4) false?)'), 1, 'none? returns true for single true value list';
+    is self->run('(none? (list 1 2 3 0 4) false?)'), undef, 'none? returns undefined value if test is negative on one element';
+    is self->run('(none? (list #f 0 "") false?)'), undef, 'none? returns undefined value on all negative elements';
+    is self->run('(none? (list :x :y)    { x: 0 y: "" z: 23 })'), 1, 'true none? hash application returns true';
+    is self->run('(none? (list :x :y :z) { x: 0 y: "" z: 23 })'), undef, 'false none? hash application returns undefined value';
+    is self->run('(none? (list { x: 0 } { x: "" }) :x)'), 1, 'true none? swapped invocant hash application returns true';
+    is self->run('(none? (list { x: 0 } { x: 23 }) :x)'), undef, 'false none? swapped invocant hash application returns undefined value';
+    is self->run('(none? (list 0 1 2)   (list "" #f 0 23))'), 1, 'true none? list application returns true';
+    is self->run('(none? (list 0 1 2 3) (list "" #f 0 23))'), undef, 'false none? list application returns undefined value';
+    throws_ok { $self->run('(none? (list 2 3))') } 'Script::SXC::Exception', 'none? with single argument throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/none\?/, 'error message contains "none?"';
+    throws_ok { $self->run('(none? (list 2 3) (λ n n) (λ m m))') } 'Script::SXC::Exception', 'none? with too many arguments throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/none\?/, 'error message contains "none?"';
+    throws_ok { $self->run('(none? (hash x: 23) (λ x x))') } 'Script::SXC::Exception', 'none? with non list throws exception';
+    like $@, qr/none\?/, 'error message contains "none?"';
     like $@, qr/list/i, 'error message contains "list"';
     like $@, qr/first argument/i, 'error message contains "first argument"';
 }
