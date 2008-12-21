@@ -85,11 +85,8 @@ has history_filename => (
 
 method build_default_history_file {
     use autodie;
-    warn "FOO";
     my $filepath = Path::Class::Dir->new((-w cwd) ? cwd : (File::Homedir->my_data, '.sxc'));
-    warn "FILEPATH";
     my $file = $filepath->file($self->history_filename)->stringify;
-    warn "FILE $file";
     return $file;
 };
 
