@@ -229,6 +229,7 @@ sub T700_zip: Tests {
     throws_ok { $self->run('(zip + { x: 3 } (list 4 5))') } 'Script::SXC::Exception', 'zip with non list throws exception';
     like $@, qr/list/i, 'error message contains "list"';
     like $@, qr/zip/, 'error message contains "zip"';
+    like $@, qr/argument 1/i, 'error message contains "argument 1"';
 }
 
 sub T900_nested_list_proc: Tests {

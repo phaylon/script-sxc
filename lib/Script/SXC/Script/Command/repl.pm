@@ -7,14 +7,20 @@ Script::SXC::Script::Command::repl - the SXC read/eval/print loop
 package Script::SXC::Script::Command::repl;
 use Moose;
 use MooseX::Method::Signatures;
+use MooseX::AttributeHelpers;
 use MooseX::CurriedHandles;
-use MooseX::Types::Moose qw( Object );
+use MooseX::Types::Moose qw( Object Str ArrayRef Int );
 
 use Term::ReadLine;
 use Lexical::Persistence;
-use Data::Dump   qw( pp );
-use Perl::Tidy   qw( perltidy );
-use Scalar::Util qw( blessed );
+use File::HomeDir;
+use Path::Class::Dir;
+use Cwd;
+use File::Path      qw( mkpath );
+use Data::Dump      qw( pp );
+use Perl::Tidy      qw( perltidy );
+use Scalar::Util    qw( blessed );
+use List::MoreUtils qw( uniq );
 
 use namespace::clean -except => 'meta';
 
@@ -36,17 +42,98 @@ has _terminal => (
     },
 );
 
+has _history => (
+    metaclass   => 'Collection::Array',
+    is          => 'rw',
+    isa         => ArrayRef,
+    required    => 1,
+    builder     => '_read_history_file',
+    provides    => {
+        'unshift'   => 'add_to_history',
+        'pop'       => 'remove_last_history_item',
+        'count'     => 'history_item_count',
+    },
+);
+
+has history_max_lines => (
+    is          => 'rw',
+    isa         => Int,
+    required    => 1,
+    default     => 200,
+);
+
+after add_to_history => sub {
+    my $self = shift;
+    $self->_history([ uniq @{ $self->_history } ]);
+    $self->remove_last_history_item
+        if $self->history_item_count > $self->history_max_lines;
+};
+
+has history_filename => (
+    is          => 'rw',
+    isa         => Str,
+    required    => 1,
+    builder     => 'build_default_history_filename',
+    lazy        => 1,
+);
+
+method build_default_history_filename { '.script-sxc-history' };
+
+has history_file => (
+    is          => 'rw',
+    isa         => Str,
+    required    => 1,
+    builder     => 'build_default_history_file',
+    lazy        => 1,
+);
+
+method build_default_history_file {
+    warn "HISTORY FILE BUILD\n";
+    use autodie;
+    my $filepath = Path::Class::Dir->new((-w cwd) ? cwd : (File::Homedir->my_data, '.sxc'));
+    warn "FILEPATH $filepath\n";
+    mkpath $filepath->stringify
+        unless -e $filepath;
+    warn "FILEPATH CREATED";
+    my $file = $filepath->file($self->history_filename)->stringify;
+    warn "FILE $file\n";
+    return $file;
+};
+
 method _build_default_terminal {
     my $class = ref($self) || $self;
     my $term = Term::ReadLine->new($class);
     $term->ornaments(0);
     return $term;
-}
+};
+
+method _write_history_file {
+    use autodie;
+    unless (-e $self->history_file) {
+        open my $fh, '>', $self->history_file;
+    }
+    open my $fh, '>:utf8', $self->history_file;
+    print $fh sprintf "%s\n", $_
+        for @{ $self->_history };
+};
+
+method _read_history_file {
+    use autodie;
+    open my $fh, '<', $self->history_file;
+    my @lines = <$fh>;
+    chomp @lines;
+    $self->_terminal->AddHistory(reverse @lines);
+    return \@lines;
+};
 
 override _build_default_compiler => method {
     my $compiler = super;
     $compiler->cleanup_environment(0);
     return $compiler;
+};
+
+method DEMOLISH {
+    $self->_write_history_file;
 };
 
 method run {
@@ -116,11 +203,15 @@ method run {
 
             # normal error
             warn "An error occured during $stage:\n\t$e\n";
+            do { chomp(my $l = $line); $self->add_to_history($l) };
             #$self->print_info($body, no_prefix => 1, filter => sub { "# $_" });
             #$self->print_warning("An error occurred during $stage: $e");
             @buf = ();
             next READ;
         }
+
+        # history management
+        do { chomp(my $l = $line); $self->add_to_history($l) };
 
         # print body and result
         $self->print_info($body, no_prefix => 1, filter => sub { "# $_" });

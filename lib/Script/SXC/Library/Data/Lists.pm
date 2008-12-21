@@ -364,7 +364,7 @@ CLASS->add_procedure('zip',
     firstclass => sub {
         CLASS->runtime_arg_count_assertion('zip', [@_], min => 3);
         my ($zipper, @lists) = @_;
-        CLASS->runtime_type_assertion($lists[ $_ ], 'list', "zip argument $_ is not a list")
+        CLASS->runtime_type_assertion($lists[ $_ ], 'list', "zip argument @{[ $_ + 1 ]} is not a list")
             for 0 .. $#lists;
         my $apply = CLASS->get_apply;
         return [ map {
