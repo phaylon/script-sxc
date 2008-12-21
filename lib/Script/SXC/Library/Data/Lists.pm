@@ -344,6 +344,21 @@ CLASS->add_procedure('all?',
     },
 );
 
+CLASS->add_procedure('none?',
+    inliner     => CLASS->build_inline_list_application(
+        'List::MoreUtils::none', 
+        surround_template => '( (%s) ? 1 : undef )', 
+        required_packages => ['List::MoreUtils'],
+        typehint          => 'bool',
+    ),
+    firstclass  => sub {
+        CLASS->runtime_arg_count_assertion('none?', [@_], min => 2, max => 2);
+        my ($ls, $apply) = @_;
+        CLASS->runtime_type_assertion($ls, 'list', 'none? expects a list as first argument');
+        return( (none { CLASS->call_apply($apply, [$_]) } @$ls) ? 1 : undef );
+    },
+);
+
 CLASS->add_procedure('pair?',
     firstclass => sub {
         CLASS->runtime_arg_count_assertion('pair?', [@_], min => 1);
@@ -382,12 +397,7 @@ CLASS->add_procedure('zip',
         my $zipper_var;
         if (     not($compiler->force_firstclass_procedures)
              and ($zipper_compiled->isa(ProcedureClass) and $zipper_compiled->inliner)
-#        if (not($compiler->force_firstclass_procedures)
-#            and($zipper_compiled->isa(InlinerClass) 
-#                or
-#                and($zipper_compiled->isa(ProcedureClass) and $zipper_compiled->inliner)
-#                or
-                ) {
+        ) {
 
             $zipper_var = $zipper_compiled;
         }
@@ -444,18 +454,6 @@ CLASS->add_procedure('zip',
                     ],
                     $symbol->source_information,
                 )->render,
-#                CompiledApplication->new(
-#                    invocant    => $zipper_var,
-#                    return_type => 'scalar',
-#                    arguments   => [map {
-#                        CompiledValue->new(content => sprintf
-#                            '(@{( %s )}[%s])',
-#                            $lists_var->render_array_access($_),
-#                            $index_var->render,
-#                        ),
-#                    } 0 .. $#lists],
-#                    $symbol->source_information,
-#                )->render,
                 $lists_var->render,
             ),
         );
