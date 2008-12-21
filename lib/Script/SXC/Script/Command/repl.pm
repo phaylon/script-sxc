@@ -11,10 +11,12 @@ use MooseX::AttributeHelpers;
 use MooseX::CurriedHandles;
 use MooseX::Types::Moose qw( Object Str ArrayRef Int );
 
+use CLASS;
 use Term::ReadLine;
 use Lexical::Persistence;
 use File::HomeDir;
 use Path::Class::Dir;
+use Path::Class::File;
 use Cwd;
 use File::Path      qw( mkpath );
 use Data::Dump      qw( pp );
@@ -56,10 +58,11 @@ has _history => (
 );
 
 has history_max_lines => (
-    is          => 'rw',
-    isa         => Int,
-    required    => 1,
-    default     => 200,
+    is              => 'rw',
+    isa             => Int,
+    required        => 1,
+    default         => 200,
+    documentation   => 'maximum number of lines the history will remember persistently (default: 200)',
 );
 
 after add_to_history => sub {
@@ -69,36 +72,35 @@ after add_to_history => sub {
         if $self->history_item_count > $self->history_max_lines;
 };
 
-has history_filename => (
-    is          => 'rw',
-    isa         => Str,
-    required    => 1,
-    builder     => 'build_default_history_filename',
-    lazy        => 1,
-);
-
 method build_default_history_filename { '.script-sxc-history' };
 
-has history_file => (
-    is          => 'rw',
-    isa         => Str,
-    required    => 1,
-    builder     => 'build_default_history_file',
-    lazy        => 1,
+has history_filename => (
+    is              => 'rw',
+    isa             => Str,
+    required        => 1,
+    builder         => 'build_default_history_filename',
+    lazy            => 1,
+    documentation   => 'name of history file (default: ' . (CLASS->build_default_history_filename) . ')',
 );
 
 method build_default_history_file {
-    warn "HISTORY FILE BUILD\n";
     use autodie;
+    warn "FOO";
     my $filepath = Path::Class::Dir->new((-w cwd) ? cwd : (File::Homedir->my_data, '.sxc'));
-    warn "FILEPATH $filepath\n";
-    mkpath $filepath->stringify
-        unless -e $filepath;
-    warn "FILEPATH CREATED";
+    warn "FILEPATH";
     my $file = $filepath->file($self->history_filename)->stringify;
-    warn "FILE $file\n";
+    warn "FILE $file";
     return $file;
 };
+
+has history_file => (
+    is              => 'rw',
+    isa             => Str,
+    required        => 1,
+    builder         => 'build_default_history_file',
+    lazy            => 1,
+    documentation   => 'complete path to history file',
+);
 
 method _build_default_terminal {
     my $class = ref($self) || $self;
@@ -109,6 +111,9 @@ method _build_default_terminal {
 
 method _write_history_file {
     use autodie;
+    my $filepath = Path::Class::File->new($self->history_file)->dir;
+    mkpath $filepath->stringify
+        unless -e $filepath;
     unless (-e $self->history_file) {
         open my $fh, '>', $self->history_file;
     }
