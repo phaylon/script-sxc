@@ -362,10 +362,11 @@ method add ($class: $name!, Object $item!) {
     return $item;
 };
 
-method add_procedure ($class: $name!, Method :$firstclass!, Method :$inliner) {
+method add_procedure ($class: $name!, Method :$firstclass!, Method :$inliner, :$setter?) {
     my $proc = Procedure->new(
         firstclass  => $firstclass,
         ($inliner ? (inliner => $inliner) : ()),
+        ($setter  ? (setter  => $setter)  : ()),
         library     => $class,
         name        => (ref($name) ? $name->[0] : $name),
     );

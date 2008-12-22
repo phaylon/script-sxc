@@ -18,6 +18,7 @@ use namespace::clean -except => 'meta';
 with 'Script::SXC::TypeHinting';
 with 'Script::SXC::Library::Item::Inlining';
 with 'Script::SXC::CompileToSelf';
+with 'Script::SXC::ProvidesSetter';
 
 method build_default_typehint { 'code' }
 

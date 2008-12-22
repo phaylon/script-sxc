@@ -10,6 +10,7 @@ use Script::SXC::lazyload
     [qw( Script::SXC::Compiled::TypeCheck   CompiledTypeCheck )];
 
 use CLASS;
+use signatures;
 use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Library';
@@ -78,6 +79,25 @@ CLASS->add_procedure('hash-ref',
         CLASS->runtime_arg_count_assertion('hash-ref', [@_], min => 2, max => 2);
         CLASS->runtime_type_assertion($_[0], 'hash', 'hash-ref expects a hash as first argument');
         return $_[0]->{ $_[1] };
+    },
+    setter => sub ($compiler, $env, $args, $expr, $symbol) {
+        $symbol->throw_parse_error(missing_setter_args => "Missing arguments: hash-ref setter needs list and index arguments")
+            if @$args < 2;
+        $args->[2]->throw_parse_error(too_many_setter_args => "Too many arguments for hash-ref setter")
+            if @$args > 2;
+        my ($hash, $key) = @$args;
+        my $compiled_expr = $expr->compile($compiler, $env);
+        return CompiledValue->new(content => sprintf(
+            '( (%s)->{ %s } = %s )',
+            CompiledTypeCheck->new(
+                expression  => $hash->compile($compiler, $env),
+                type        => 'hash',
+                source_item => $hash,
+                message     => "hash-ref setter needs a hash as first and a key as second argument",
+            )->render,
+            $key->compile($compiler, $env, to_string => 1)->render,
+            $compiled_expr->render,
+        ), $compiled_expr->can('typehint') ? (typehint => $compiled_expr->typehint) : ());
     },
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs, :$name, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);

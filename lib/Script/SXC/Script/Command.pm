@@ -66,12 +66,21 @@ has optimize_tailcalls => (
     documentation   => 'activate tailcall optimization where possible',
 );
 
+has localize_exceptions => (
+    is              => 'rw',
+    isa             => Bool,
+    default         => 0,
+    documentation   => 'trap exceptions at apply level and localize them if necessary',
+);
+
+
 method _build_default_reader { ReaderClass->new }
 
 method _build_default_compiler { 
     return CompilerClass->new(
         optimize_tailcalls          => $self->optimize_tailcalls,
         force_firstclass_procedures => $self->force_firstclass_procedures,
+        localize_exceptions         => $self->localize_exceptions,
     );
 }
 

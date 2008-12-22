@@ -51,6 +51,12 @@ has force_firstclass_procedures => (
     default     => 0,
 );
 
+has localize_exceptions => (
+    is          => 'rw',
+    isa         => Bool,
+    default     => 0,
+);
+
 method compile_tree (Object $tree) {
 
     $self->clear_top_environment if $self->cleanup_environment;

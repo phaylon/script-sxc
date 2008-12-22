@@ -8,6 +8,7 @@ use List::MoreUtils qw( any all none );
 
 use Script::SXC::lazyload
     'Script::SXC::Compiler::Environment::Variable',
+    'Script::SXC::Exception::ParseError',
     [qw( Script::SXC::Compiled::Value               CompiledValue )],
     [qw( Script::SXC::Compiled::TypeCheck           CompiledTypeCheck )],
     [qw( Script::SXC::Compiled::Application::List   CompiledListApplication )],
@@ -217,6 +218,26 @@ CLASS->add_procedure('list-ref',
         CLASS->runtime_arg_count_assertion('list-ref', [@_], min => 2, max => 2);
         CLASS->runtime_type_assertion($_[0], 'list', 'list-ref expects a list as first argument');
         return $_[0]->[ $_[1] ];
+    },
+    setter => sub {
+        my ($compiler, $env, $args, $expr, $symbol) = @_;
+        $symbol->throw_parse_error(missing_setter_args => "Missing arguments: list-ref setter needs list and index arguments")
+            if @$args < 2;
+        $args->[2]->throw_parse_error(too_many_setter_args => "Too many arguments for list-ref setter")
+            if @$args > 2;
+        my ($ls, $index) = @$args;
+        my $compiled_expr = $expr->compile($compiler, $env);
+        return CompiledValue->new(content => sprintf(
+            '( (%s)->[%s] = %s )',
+            CompiledTypeCheck->new(
+                expression  => $ls->compile($compiler, $env),
+                source_item => $ls,
+                type        => 'list',
+                message     => 'list-ref setter expects list as first argument',
+            )->render,
+            $index->compile($compiler, $env)->render,
+            $compiled_expr->render,
+        ), ($compiled_expr->can('typehint') ? (typehint => $compiled_expr->typehint) : ()) );
     },
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs, :$name, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);

@@ -282,6 +282,38 @@ sub T700_zip: Tests {
     like $@, qr/argument 1/i, 'error message contains "argument 1"';
 }
 
+sub T800_setter: Tests {
+    my $self = self;
+
+    is_deeply self->run('(begin (define ls (list 2 3 4)) (define res (set! (list-ref ls 1) 23)) (list res ls))'), 
+        [23, [2, 23, 4]],
+        'explicit list-ref setter works';
+    throws_ok { $self->run('(set! (list-ref (list 2 3)) 23)') } 'Script::SXC::Exception', 
+        'missing list-ref index throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/list-ref/, 'error message contains "list-ref"';
+    throws_ok { $self->run('(set! (list-ref (list 2 3) 1 2) 23)') } 'Script::SXC::Exception', 
+        'too many list-ref setter arguments with expression throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/list-ref/, 'error message contains "list-ref"';
+    throws_ok { $self->run('(set! (list-ref (list 2 3) 4))') } 'Script::SXC::Exception', 
+        'missing list-ref expression with index throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/set!/, 'error message contains "set!"';
+    throws_ok { $self->run('(set! (list-ref (list 2 3) 1) 23 12)') } 'Script::SXC::Exception', 
+        'too many list-ref setter expressions with index throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/set!/, 'error message contains "set!"';
+    throws_ok { $self->run('(set! (list-ref (list 2 3)) 23 12)') } 'Script::SXC::Exception', 
+        'too many list-ref setter expressions without index throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/set!/, 'error message contains "set!"';
+    throws_ok { $self->run('(set! (list-ref (list 2 3) 4 17))') } 'Script::SXC::Exception', 
+        'missing list-ref expression with too many expressions throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/set!/, 'error message contains "set!"';
+}
+
 sub T900_nested_list_proc: Tests {
     is_deeply self->run('(grep (map (grep (list 1 2 3 4 5 6) odd?) (λ (x) { x: x lt2: (> x 2) })) :lt2)'),
               [{ x => 3, lt2 => 1 }, { x => 5, lt2 => 1 }],

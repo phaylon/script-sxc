@@ -257,10 +257,8 @@ CLASS->add_procedure('copy',
 #   (is? foo! ...)       ; array(same contents), hash(same keys/values), object(same id), scalar(equal)
 #   (~~ foo! bar!)
 #   (delete! hs|ls! at! ...)
-#   (grep ls|hs! proc?)
-#   (any? ls|hs! proc!)
-#   (all? ls|hs! proc!)
-#   (none? ls|hs! proc!)
+#   (without hash|list! ...)            ; (without { x: 23 y: 17 } :x)  => { y: 17 }
+#                                       ; (without '(1 2 3 4) 0 2)      => '(2 4)
 #   (one? ls|hs! proc!)
 #   (defined? x)
 #
@@ -268,11 +266,12 @@ CLASS->add_procedure('copy',
 #
 #   (list->hash h!)
 #   (hash->list h!)
-#   (pair? p! ...)
 #
 #   (each hs! proc!)
+#
+#   (cmp str! str!)
+#   (<=> num! num!)
 #   
-#   (map ls! proc!)
 #   (head ls! proc|num?)
 #   (tail ls! proc|num?)
 #   (splice ls! offset|startproc! length|endproc!)
