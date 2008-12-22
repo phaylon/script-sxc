@@ -80,6 +80,29 @@ sub symbols: Tests {
     }
 }
 
+sub regexes: Tests {
+
+    {   # simple regex
+        explain 'simple regex: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('/foo/');
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'single item in simple regex tree';
+        isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Regex';
+        is $item->value, qr/(?:foo)/x, 'regex in tree has correct value';
+    }
+
+    {   # complex regex
+        explain 'complex regex: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('/\Afoo$bar%baz@qux (\@.\%.\$)\Z/xi-sm');
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'single item in complex regex tree';
+        isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Regex';
+        is $item->value, qr/(?xi-sm:\Afoo\$bar\%baz\@qux (\@.\%.\$)\Z)/x, 'regex in tree has correct value';
+    }
+}
+
 sub numbers: Tests {
 
     {   # simple integer

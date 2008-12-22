@@ -24,6 +24,7 @@ use Script::SXC::lazyload
     ['Script::SXC::Token::Unquote',             'UnquoteTokenClass'         ],
     ['Script::SXC::Token::Dot',                 'DotTokenClass'             ],
     ['Script::SXC::Token::String',              'StringTokenClass'          ],
+    ['Script::SXC::Token::Regex',               'RegexTokenClass'           ],
     ['Script::SXC::Token::Invalid::String',     'InvalidStringTokenClass'   ],
     ['Script::SXC::Token::Invalid::Number',     'InvalidNumberTokenClass'   ],
     ['Script::SXC::Token::Invalid::Keyword',    'InvalidKeywordTokenClass'  ],
@@ -109,6 +110,7 @@ method build_default_token_classes {
         CellOpenTokenClass,
         CellCloseTokenClass,
         DotTokenClass,
+        RegexTokenClass,
         SymbolTokenClass,
         WhitespaceTokenClass,
     ];

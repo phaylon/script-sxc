@@ -124,7 +124,8 @@ method _read_history_file {
     open my $fh, '<', $self->history_file;
     my @lines = <$fh>;
     chomp @lines;
-    $self->_terminal->AddHistory(reverse @lines);
+    $self->_terminal->AddHistory(reverse @lines)
+        if @lines;
     return \@lines;
 };
 
