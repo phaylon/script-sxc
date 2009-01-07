@@ -35,6 +35,9 @@ CLASS->add_delegated_items({
 
     'Script::SXC::Library::Data::Code'
         => [qw( code? curry rcurry )],
+
+    'Script::SXC::Library::Data::Regex'
+        => [qw( match match-all named-match named-match-full regex? )],
 });
 
 #   list-ref ideas:

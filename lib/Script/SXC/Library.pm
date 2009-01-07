@@ -328,6 +328,7 @@ my %InternalRuntimeType = (
     'list'          => sub { ref $_[0] and ref $_[0] eq 'ARRAY' },
     'hash'          => sub { ref $_[0] and ref $_[0] eq 'HASH' },
     'code'          => sub { ref $_[0] and ref $_[0] eq 'CODE' },
+    'regex'         => sub { ref $_[0] and ref $_[0] eq 'Regexp' },
     'defined'       => sub { defined $_[0] },
 );
 

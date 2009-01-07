@@ -58,6 +58,7 @@ my %TypeTemplate = (
     'list'      => '(ref(%s) and ref(%s) eq q(ARRAY))',
     'hash'      => '(ref(%s) and ref(%s) eq q(HASH))',
     'code'      => '(ref(%s) and ref(%s) eq q(CODE))',
+    'regex'     => '(ref(%s) and ref(%s) eq q(Regexp))',
     'symbol'    => '(Scalar::Util::blessed(%s) and %s->isa(q(Script::SXC::Runtime::Symbol)))',
     'keyword'   => '(Scalar::Util::blessed(%s) and %s->isa(q(Script::SXC::Runtime::Keyword)))',
 );
@@ -70,10 +71,14 @@ has type => (
 
 method render {
 
+#    warn "TYPECHECK " . $self->expression . "\n";
+
     return $self->render_expression
-        if not($self->expression_isa('Script::SXC::Compiler::Environment::Variable'))
+        if not($self->expression_isa('Script::SXC::Compiler::Environment::Variable::Outer'))
             and $self->expression_typehint 
             and $self->expression_typehint eq $self->type;
+
+#    warn "NO TYPEMATCH\n";
 
     my $anon          = Variable->new_anonymous('typecheck');
     my $anon_rendered = $anon->render;

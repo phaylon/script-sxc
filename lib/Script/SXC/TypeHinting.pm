@@ -37,10 +37,12 @@ method type_might_be (Str $hint!) {
 }
 
 method try_typehinting_from (Object $item!, Bool :$or_clear?) {
+#    warn "TYPEHINTING $self FROM $item\n";
 
     # see if we can typehint
     if ($item->does('Script::SXC::TypeHinting')) {
         $self->typehint($item->typehint);
+#        warn "TYPE " . $self->typehint . "\n";
     }
     elsif ($or_clear) {
         $self->clear_typehint;
