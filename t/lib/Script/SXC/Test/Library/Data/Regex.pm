@@ -49,4 +49,26 @@ sub T300_match_all: Tests {
     like $@, qr/match-all/, 'error message contains "match-all"';
 }
 
+sub T400_named_match: Tests {
+    my $self = self;
+
+    is_deeply self->run('(named-match /(?<Foo>23)(?<Bar>42)/ "2342")'), { Foo => 23, Bar => 42 },
+        'named-match returns correct structure';
+    is_deeply self->run('(named-match /(?<A>foo)(?<A>bar)/ "foobar")'), { A => 'foo' },
+        'named-match with multiple matches per name returns first match in structure';
+    is self->run('(named-match /(?<A>foo)/ "bar")'), undef, 'named-match without match returns undefined value';
+    
+    throws_ok { $self->run('(named-match /foo/)') } 'Script::SXC::Exception', 'named-match with single argument throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/named-match/, 'error message contains "named-match"';
+
+    throws_ok { $self->run('(named-match /foo/ "foo" 23)') } 'Script::SXC::Exception', 'named-match with too many arguments throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/named-match/, 'error message contains "named-match"';
+
+    throws_ok { $self->run('(named-match 23 "foo")') } 'Script::SXC::Exception', 'named-match with non regex as first argument throws exception';
+    like $@, qr/regex|regular expression/i, 'error message contains "regex"';
+    like $@, qr/named-match/, 'error message contains "named-match"';
+}
+
 1;
