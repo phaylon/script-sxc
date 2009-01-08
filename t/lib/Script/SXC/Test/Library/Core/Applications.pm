@@ -5,6 +5,7 @@ use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
+use DateTime;
 
 sub T100_simple: Tests {
     is_deeply self->run('(apply list (list 1 2 3))'), [1, 2, 3], 'apply with single list argument returns proper result';
@@ -43,14 +44,28 @@ sub T300_hashes: Tests {
 }
 
 {   package TestFoo;
-    sub new { bless {} }
+    sub new { shift and bless { @_ } }
     sub bar { 23 * $_[1] }
+    sub baz { 23 * $_[0]->{ $_[1] } }
 }
 
 sub T400_classes: Tests {
 
     isa_ok self->run('("TestFoo" :new)'), 'TestFoo';
     is self->run('(let ((class "TestFoo")) (bar: class 2))'), 46, 'complex class call example';
+}
+
+sub T500_objects: Tests {
+
+    is self->run('((new: "TestFoo") :bar 2)'), 46, 'simple object method call';
+    is self->run('(baz: (new: "TestFoo" :qux 2) :qux)'), 46, 'object method call with argument';
+    
+    {   my $before = DateTime->now(time_zone => 'local')->year;
+        my $year   = self->run('((current-datetime) :year)');
+        my $after  = DateTime->now(time_zone => 'local')->year;
+        ok $year, 'optimised object application returned value';
+        ok $before <= $year && $year <= $after, 'returned value is correct';
+    }
 }
     
 sub T700_keyword_swap: Tests {   
