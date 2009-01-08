@@ -46,14 +46,14 @@ CLASS->add_procedure('current-timestamp',
 CLASS->add_procedure('current-datetime',
     firstclass => sub {
         CLASS->runtime_arg_count_assertion('current-datetime', [@_], max => 0);
-        return DateTimeClass->now;
+        return DateTimeClass->now(time_zone => 'local');
     },
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, max => 0);
         $compiler->add_required_package('DateTime');
         return CompiledValue->new(
             typehint => 'object', 
-            content  => '(DateTime->now)',
+            content  => '(DateTime->now(time_zone => "local"))',
         );
     },
 );
