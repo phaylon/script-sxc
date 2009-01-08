@@ -16,6 +16,7 @@ with 'Script::SXC::Tree::SingleValue';
 my $Template = 'Script::SXC::Runtime::make_keyword(%s)';
 
 method compile (Object $compiler, Object $env, Bool :$to_string) {
+    $compiler->add_required_package('Script::SXC::Runtime');
     return CompiledValue->new(
         typehint    => ($to_string ? 'string' : 'keyword'),
         content     => ($to_string ? pp($self->value) : sprintf($Template, pp($self->value))),

@@ -167,11 +167,13 @@ method run {
             my $tree     = $stream->transform;
 
             # compile the tree
-            my $pre_text = join '', map { "my $_; " } keys %lex;    # recreate lexicals
+            my $pre_text = join '',                                 # recreate lexicals
+                map  { "my $_; " }
+                keys %lex;
             $stage       = 'compilation';
             my $compiled = $self->compile_tree($tree);
             $compiled->pre_text($pre_text);                         # add lexical defintions
-            $body        = $compiled->get_body;
+            $body        = $compiled->get_full_body;
 
             # tidy up the body. the local sanitizes perltidy
             local @ARGV;
@@ -182,7 +184,11 @@ method run {
 
             # remember all existing variables
             $lex{ $_->render }++
-                for grep { $_->isa('Script::SXC::Compiler::Environment::Variable') }
+                for grep { 
+                        $_->isa('Script::SXC::Compiler::Environment::Variable') 
+                            and not
+                        $_->isa('Script::SXC::Compiler::Environment::Variable::Global')
+                    }
                     $self->top_environment->variables;
 
             # build the callback

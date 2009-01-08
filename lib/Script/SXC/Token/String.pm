@@ -57,7 +57,8 @@ method transform ($stream) {
         if ($state eq STATE_STRING) {
 
             if ($rest =~ s/^\\(.)//) {
-                push @$current, $1;
+#                push @$current, $1;
+                push @$current, eval sprintf '"%s%s"', '\\', $1;
             }
 
             elsif ($rest =~ s/^\$\{//) {

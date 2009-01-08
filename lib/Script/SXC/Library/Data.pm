@@ -28,7 +28,7 @@ CLASS->add_delegated_items({
         => [qw( hash hash? keys values hash-ref merge )],
 
     'Script::SXC::Library::Data::Strings'   
-        => [qw( string string? lt? gt? le? ge? eq? ne? join )],
+        => [qw( string string? lt? gt? le? ge? eq? ne? join length )],
 
     'Script::SXC::Library::Data::Numbers'   
         => [qw( + - * -- ++ / < > <= >= == != = abs mod even? odd? min max )],

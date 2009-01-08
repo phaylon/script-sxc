@@ -102,4 +102,17 @@ CLASS->add_procedure('join',
     },
 );
 
+CLASS->add_procedure('length',
+    firstclass => sub {
+        CLASS->runtime_arg_count_assertion('length', [@_], min => 1, max => 1);
+        return length shift;
+    },
+    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
+        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
+        return CompiledValue->new(typehint => 'number', content => sprintf 'length(%s)',
+            $exprs->[0]->compile($compiler, $env, to_string => 1)->render,
+        );
+    },
+);
+
 1;

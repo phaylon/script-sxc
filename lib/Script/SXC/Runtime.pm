@@ -86,6 +86,7 @@ sub apply {
                     type    => 'missing_arguments',
                     message => 'Missing arguments for class method call on string',
                 ) unless @args == 1;
+                # TODO class method and object method call + tests (also compiletime tests)
             }
             else {
                 TypeError->throw(

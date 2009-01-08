@@ -12,17 +12,39 @@ extends 'Script::SXC::Library';
 
 CLASS->add_delegated_items({
     'Script::SXC::Library::Core::Operators'     => [qw( or and err def not ~~ )],
+
     'Script::SXC::Library::Core::Sequences'     => [qw( begin )],
+
     'Script::SXC::Library::Core::Conditionals'  => [qw( if )],
+
     'Script::SXC::Library::Core::Functions'     => [qw( lambda λ )],
+
     'Script::SXC::Library::Core::Let'           => [qw( let let* let-rec )],
+
     'Script::SXC::Library::Core::Set'           => [qw( set! )],
+
     'Script::SXC::Library::Core::Quoting'       => [qw( quote quasiquote unquote unquote-splicing )],
+
     'Script::SXC::Library::Core::Goto'          => [qw( goto )],
+
     'Script::SXC::Library::Core::Definitions'   => [qw( define )],
+
     'Script::SXC::Library::Core::Contexts'      => [qw( values->list values->hash )],
+
     'Script::SXC::Library::Core::Apply'         => [qw( apply )],
+
     'Script::SXC::Library::Core::Recursion'     => [qw( recurse )],
+
+    'Script::SXC::Library::Core::DateTime'      
+        => [qw( current-datetime current-timestamp sleep usleep )],
+
+    'Script::SXC::Library::Core::IO'
+        => [qw( 
+                say print read-line read-all-lines
+                with-input-from-file    with-output-to-file
+                with-input-from-string  with-output-to-string
+                with-input-from-handle  with-output-to-handle
+            )],
 });
 
 CLASS->add_inliner('builtin', via => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {

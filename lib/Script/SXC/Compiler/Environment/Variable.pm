@@ -4,7 +4,8 @@ use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Str Object Int );
 
 use Script::SXC::lazyload
-    'Script::SXC::Compiler::Environment::Variable::Outer';
+    'Script::SXC::Compiler::Environment::Variable::Outer',
+    'Script::SXC::Compiler::Environment::Variable::Global';
 
 use namespace::clean -except => 'meta';
 
@@ -44,7 +45,7 @@ method render_array_access (Int $index!) {
 method compile { $self }
 
 method as_outer {
-    return Outer->new(%$self);
+    return Outer->new(%$self, original => $self);
 }
 
 method new_anonymous ($class: Str $info?, Str :$sigil?, :$line_number?, :$source_description?) {
@@ -60,6 +61,11 @@ method new_anonymous ($class: Str $info?, Str :$sigil?, :$line_number?, :$source
         ( defined($source_description)  ? (source_description => $source_description)   : () ),
         ( defined($sigil)               ? (sigil => $sigil)                             : () ),
     );
+}
+
+method new_perl_global ($class: Str $name!, Str $sigil!, Str :$typehint?) {
+
+    return Global->new(identifier => $name, sigil => $sigil, typehint => $typehint);
 }
 
 method new_from_name ($class: Str $name!, Str :$prefix?) {

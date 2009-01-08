@@ -36,7 +36,7 @@ has handle => (
         'print' => { 
             'print' => [
                 sub ($self) { 
-                    return sprintf "%s%s\n", 
+                    return sprintf "# %s%s\n", 
                       ( $self->prefix ? sprintf('%s: ', $self->prefix) : '' ), 
                       ( $self->filter
                         ? join("\n", map { $self->filter->($self, $_) } split /\n/, $self->text)

@@ -7,6 +7,12 @@ use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Compiler::Environment::Variable';
 
+has original => (
+    is          => 'rw',
+    isa         => Object,
+    required    => 1,
+);
+
 method typehint         { undef }
 method type_might_be    { undef }
 

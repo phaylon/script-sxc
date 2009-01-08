@@ -124,6 +124,16 @@ sub numbers: Tests {
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Number';
         is $item->value, -17500.333, 'negative float with delimiter item has correct value';
     }
+
+    {   # zero-point float
+        explain 'zero point float: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('0.5');
+        isa_ok $tree, TreeClass;
+        is $tree->content_count, 1, 'correct number of items';
+        isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Number';
+        is $item->value, 0.5, 'zero-point float item has correct value';
+    }
 }
 
 sub keywords: Tests {
@@ -168,6 +178,15 @@ sub strings: Tests {
         isa_ok $tree, TreeClass;
         my $str = $tree->get_content_item(0);
         string_ok $str, 'xyz', 'plain string';
+    }
+
+    {   # string with newline
+        explain 'string with newline: ',
+            dump assert_ok 'tree built ok',
+            my $tree = self->transform('"foo\nbar"');
+        isa_ok $tree, TreeClass;
+        my $str = $tree->get_content_item(0);
+        string_ok $str, "foo\nbar", 'string with newline';
     }
 
     {   # string with var interpolation

@@ -76,7 +76,7 @@ method build_tokens ($value) {
     }
 
     # octal value
-    elsif ($value =~ /^0(.+)$/) {
+    elsif ($value !~ /\./ and $value =~ /^0(.+)$/) {
         $value = oct $1;
     }
 

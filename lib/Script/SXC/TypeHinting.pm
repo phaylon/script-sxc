@@ -9,7 +9,7 @@ use Carp qw( croak );
 use namespace::clean -except => 'meta';
 
 my $TypeHint = enum 'Script::SXC::Types::TypeHint', 
-    qw( number string code list bool keyword symbol scalarref hash regex );
+    qw( number string code list bool keyword symbol scalarref hash regex object undef );
 
 has typehint => (
     is          => 'rw',

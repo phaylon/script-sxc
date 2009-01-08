@@ -25,6 +25,10 @@ has expression => (
     },
 );
 
+method expression_has_type {
+    return $self->expression->does('Script::SXC::TypeHinting');
+}
+
 has exception_class => (
     is          => 'rw',
     isa         => Str,
@@ -75,6 +79,7 @@ method render {
 
     return $self->render_expression
         if not($self->expression_isa('Script::SXC::Compiler::Environment::Variable::Outer'))
+            and $self->expression_has_type
             and $self->expression_typehint 
             and $self->expression_typehint eq $self->type;
 
@@ -83,10 +88,11 @@ method render {
     my $anon          = Variable->new_anonymous('typecheck');
     my $anon_rendered = $anon->render;
 
-    return sprintf('(do { my %s = %s; unless(%s) { %s->throw_to_caller(%s) } %s })',
+    return sprintf('(do { my %s = %s; unless(%s) { require %s; %s->throw_to_caller(%s) } %s })',
         $anon_rendered,
         $self->render_expression,
         do { (my $template = $TypeTemplate{ $self->type }) =~ s/\%s/$anon_rendered/g; $template },
+        $self->exception_class,
         $self->exception_class,
         pp(
             type    => $self->exception_type,

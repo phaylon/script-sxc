@@ -8,7 +8,7 @@ BEGIN {
         unshift @INC, "$FindBin::Bin/../lib";
         require Script::SXC::Script::Message;
         Script::SXC::Script::Message
-            ->new(text => "Added '$FindBin::Bin/../lib' to \@INC")
+            ->new(text => "Temporarily added '$FindBin::Bin/../lib' to \@INC")
             ->print;
     }
 }

@@ -80,6 +80,20 @@ method render_list_application (Object $invocant!, Str $args!) {
         $self->_render_single_value_check($args, 'list');
 }
 
+method render_object_application (Object $invocant!, Str $args!, ArrayRef $raw_args?) {
+    my $method_var = Variable->new_anonymous('method');
+    my $args_var   = Variable->new_anonymous('method_args', sigil => '@');
+    my ($method, @args) = @$raw_args;
+    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s->%s(%s) })',
+        $args_var->render,
+        $args,
+        $method_var->render,
+        $args_var->render,
+        $invocant->render,
+        $method_var->render,
+        $args_var->render;
+}
+
 method render_string_application (Object $invocant!, Str $args!, ArrayRef $raw_args?) {
     my $method_var = Variable->new_anonymous('classmethod');
     my $args_var   = Variable->new_anonymous('classmethod_args', sigil => '@');
@@ -223,6 +237,9 @@ method render {
             when ('string') {
                 return $self->_wrap_return($self->render_string_application($self->invocant, $args, \@raw_args));
             }
+            when ('object') {
+                return $self->_wrap_return($self->render_object_application($self->invocant, $args, \@raw_args));
+            }
             default {
                 $self->invocant->throw_parse_error(
                     'invalid_invocant',
@@ -249,9 +266,10 @@ method render {
           unless $self->render_invocant eq $var_invocant->render;
 
         my @apply_cases = (
-            [sprintf('ref(%s) eq q(CODE)',  $var_invocant->render), 'render_code_application'],
-            [sprintf('ref(%s) eq q(ARRAY)', $var_invocant->render), 'render_list_application'],
-            [sprintf('ref(%s) eq q(HASH)',  $var_invocant->render), 'render_hash_application'],
+            [sprintf('ref(%s) eq q(CODE)',        $var_invocant->render), 'render_code_application'],
+            [sprintf('ref(%s) eq q(ARRAY)',       $var_invocant->render), 'render_list_application'],
+            [sprintf('ref(%s) eq q(HASH)',        $var_invocant->render), 'render_hash_application'],
+            [sprintf('Scalar::Util::blessed(%s)', $var_invocant->render), 'render_object_application'],
             [sprintf(
                 'defined(%s) and not ref(%s)',  
                 $var_invocant->render,
@@ -259,7 +277,7 @@ method render {
             ), 'render_string_application'],
         );
 
-        $body .= sprintf 'if %s else { %s->throw(%s) }',
+        $body .= sprintf 'if %s else { require %s; %s->throw(%s) }',
             join(' elsif ',
                 map {
                     my $method = $_->[1];
@@ -269,6 +287,7 @@ method render {
                         $self->_wrap_return($self->$method($var_invocant, $args, \@raw_args));
                 } @apply_cases
             ),
+            TypeError,
             TypeError,
             pp( $self->source_information,
                 type    => 'invalid_invocant_type',

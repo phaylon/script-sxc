@@ -233,8 +233,13 @@ method wrap_external_variable (Object $variable!, Object $env!) {
 };
 
 method build_default_variables {
-    my $vars = { '*current-environment*' => $self };
-    weaken $vars->{ '*current-environment*' };
+    my $vars = { 
+#        '*current-environment*' => $self,
+#        '*environment*' => Variable->new_perl_global('ENV',  '\\%', typehint => 'hash'),
+        '*arguments*'   => Variable->new_perl_global('ARGV', '\\@', typehint => 'list'),
+        '*current-output-handle*' => Variable->new_perl_global('STDIN{IO}', '*'),
+    };
+#    weaken $vars->{ '*current-environment*' };
     return $vars;
 };
 

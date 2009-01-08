@@ -82,6 +82,8 @@ method get_full_body {
         ( $self->use_strict   ? 'use strict'          : 'no strict' ),
         ( $self->use_warnings ? 'use warnings'        : 'no warnings' ),
         'use 5.010',
+        'use IO::Handle',
+        'require Scalar::Util',
         ( $self->pre_text     ? $self->pre_text . ';' : () ),
         ( map { sprintf 'require %s', $_ } uniq @{ $self->required_packages } ),
         $self->get_body;

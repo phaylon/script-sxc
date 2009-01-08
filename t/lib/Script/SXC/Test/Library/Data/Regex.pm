@@ -71,4 +71,28 @@ sub T400_named_match: Tests {
     like $@, qr/named-match/, 'error message contains "named-match"';
 }
 
+sub T400_named_match_full: Tests {
+    my $self = self;
+
+    is_deeply self->run('(named-match-full /(?<Foo>23)(?<Bar>42)/ "2342")'), { Foo => [23], Bar => [42] },
+        'named-match-full returns correct structure';
+    is_deeply self->run('(named-match-full /(?<A>foo)(?<A>bar)/ "foobar")'), { A => ['foo', 'bar'] },
+        'named-match-full with multiple matches per name returns all matches in structure';
+    is self->run('(named-match-full /(?<A>foo)/ "bar")'), undef, 'named-match-full without match returns undefined value';
+    
+    throws_ok { $self->run('(named-match-full /foo/)') } 'Script::SXC::Exception', 'named-match-full with single argument throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/named-match-full/, 'error message contains "named-match-full"';
+
+    throws_ok { $self->run('(named-match-full /foo/ "foo" 23)') } 'Script::SXC::Exception', 
+        'named-match-full with too many arguments throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/named-match-full/, 'error message contains "named-match-full"';
+
+    throws_ok { $self->run('(named-match-full 23 "foo")') } 'Script::SXC::Exception', 
+        'named-match-full with non regex as first argument throws exception';
+    like $@, qr/regex|regular expression/i, 'error message contains "regex"';
+    like $@, qr/named-match-full/, 'error message contains "named-match-full"';
+}
+
 1;

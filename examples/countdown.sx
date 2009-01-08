@@ -1,0 +1,115 @@
+#!/usr/bin/env sxc script
+(define run-tests #f)
+
+(define multiplications
+  (hash s: 1
+        m: 60
+        h: (* 60 60)
+        d: (* 60 60 24)))
+
+(define (argument->seconds arg)
+  (let [(result (named-match /\A (?<number>\d+) (?<multiplier>[dhms])? \Z/ arg))]
+    (if (not result)
+      (begin
+        (say "Argument '${arg}' is not a valid time argument")
+        0)
+      (if (not (result :multiplier))
+        (result :number)
+        (* (result :number) 
+           (multiplications (result :multiplier)))))))
+
+(define seconds
+  (apply + (map *arguments* argument->seconds)))
+
+(say "Counting down ${seconds} second"
+     (if (= seconds 1) "" "s"))
+
+(define seconds-left
+  (let [(start-timestamp (current-timestamp))]
+    (λ ()
+       (let [(difference (- (+ start-timestamp seconds)
+                            (current-timestamp)))]
+         (if (<= difference 0)
+           0
+           difference)))))
+
+(define changed
+  (let [(last-seen -1)]
+    (λ (new)
+       (let [(old last-seen)]
+         (set! last-seen new)
+         (!= old new)))))
+
+(define (done)
+  (say "Done."))
+
+(define timeparts
+  `((,(* 60 60 24) :day)
+    (,(* 60 60)    :hour)
+    (60            :minute)
+    (1             :second)))
+
+(define (seconds->timeparts seconds parts)
+  (if (empty? parts)
+    {}
+    (let* [(part       (head parts))
+           (rest       (tail parts))
+           (multiplier (part 0))
+           (field      (part 1))]
+      (if (>= seconds multiplier)
+        (let* [(left  (mod seconds multiplier))
+               (full  (- seconds left))
+               (count (/ full multiplier))]
+          (merge { field count }
+                   (seconds->timeparts left rest)))
+        (seconds->timeparts seconds rest)))))
+
+(define (build-string-parts parts fields)
+  (if (empty? fields)
+    ()
+    (let* [(field (head fields))
+           (rest  (tail fields))
+           (count (parts field))]
+      (if count
+        (append (list (string "${count} ${field}"
+                              (if (= count 1) "" "s")))
+                (build-string-parts parts rest))
+        (build-string-parts parts rest)))))
+
+(define (fancyjoin strings)
+  (if (= (size strings) 1)
+    (head strings)
+    (if (= (size strings) 2)
+      (join " and " strings)
+      (if (> (size strings) 2)
+        (string (head strings)
+                ", "
+                (fancyjoin (tail strings)))
+        ""))))
+
+(define (report seconds)
+  (let [(parts (seconds->timeparts seconds timeparts))]
+    (say
+      (string
+        (let [(now (current-datetime))
+              (sep ".")]
+          "[$(hms: now sep)] ")
+        (fancyjoin (build-string-parts parts 
+                                       (list :day 
+                                             :hour 
+                                             :minute 
+                                             :second)))
+        " remaining…"))))
+
+(define (wait-and-see)
+  (let [(left (seconds-left))]
+    (if (= left 0)
+     (done)
+     (begin
+      (if (changed left)
+       (report left))
+      (sleep 0.2)
+      (goto wait-and-see)))))
+
+(wait-and-see)
+
