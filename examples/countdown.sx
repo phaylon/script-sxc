@@ -9,20 +9,22 @@
 
 (define (argument->seconds arg)
   (let [(result (named-match /\A (?<number>\d+) (?<multiplier>[dhms])? \Z/ arg))]
-    (if (not result)
+    (unless result
       (begin
         (say "Argument '${arg}' is not a valid time argument")
         0)
-      (if (not (result :multiplier))
+      (unless (result :multiplier)
         (result :number)
         (* (result :number) 
            (multiplications (result :multiplier)))))))
 
+(define (quant str num)
+  (string num " " str (if (= num 1) "" "s")))
+
 (define seconds
   (apply + (map *arguments* argument->seconds)))
 
-(say "Counting down ${seconds} second"
-     (if (= seconds 1) "" "s"))
+(say "Counting down " (quant "second" seconds))
 
 (define seconds-left
   (let [(start-timestamp (current-timestamp))]
@@ -71,8 +73,7 @@
            (rest  (tail fields))
            (count (parts field))]
       (if count
-        (append (list (string "${count} ${field}"
-                              (if (= count 1) "" "s")))
+        (append (list (quant field count))
                 (build-string-parts parts rest))
         (build-string-parts parts rest)))))
 
