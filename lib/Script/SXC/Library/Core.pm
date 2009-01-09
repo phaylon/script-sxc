@@ -18,7 +18,8 @@ CLASS->add_delegated_items({
     'Script::SXC::Library::Core::Conditionals'  
         => [qw( if unless )],
 
-    'Script::SXC::Library::Core::Functions'     => [qw( lambda λ )],
+    'Script::SXC::Library::Core::Functions'     
+        => [qw( lambda λ chunk λ… )],
 
     'Script::SXC::Library::Core::Let'           => [qw( let let* let-rec )],
 

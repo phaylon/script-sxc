@@ -62,4 +62,15 @@ TODO fix up documentation
         for qw( lambda λ );
 }
 
+for my $chunk_name (qw( chunk λ… )) {
+    CLASS->add_inliner($chunk_name, via => method (Object :$compiler!, Object :$env!, Str :$name!, ArrayRef :$exprs!, :$error_cb!, :$symbol) {
+        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
+        return $symbol->new_item_with_source(List => { contents => [
+            $symbol->new_item_with_source(Builtin => { value => 'lambda' }),
+            $symbol->new_item_with_source(List    => { contents => [] }),
+            @$exprs,
+        ]})->compile($compiler, $env);
+    });
+}
+
 1;

@@ -9,7 +9,7 @@ use Data::Dump qw( dump );
 sub T200_lambdas: Tests {
     my $self = self;
 
-    # simple without scoping tests
+    # simple without scoping
     {   my $lambda = self->run('(lambda () 23)');
         is ref($lambda), 'CODE', 'simple lambda returned code reference';
         is $lambda->(), 23, 'execution of lambda returned evaluated body expression';
@@ -117,6 +117,18 @@ sub T200_lambdas: Tests {
         like $@, qr/missing/i, 'error message contains "missing"';
         throws_ok { $without_rest->(1, 2, 3) } 'Script::SXC::Exception::ArgumentError', 'too many arguments throw exception';
         like $@, qr/too many/i, 'error message contains "too many"';
+    }
+}
+
+sub T800_chunks: Tests {
+    my $self = self;
+
+    for my $name (qw( chunk λ… )) {
+        is ref(self->run("($name 23)")), 'CODE', "$name builds successful code reference";
+        is self->run("(($name 23))"), 23, "$name returns evaluated body expression on call";
+        throws_ok { $self->run("($name)") } 'Script::SXC::Exception', "$name without body throws exception";
+        like $@, qr/$name/, qq(error message contains "$name");
+        like $@, qr/missing/i, 'error message contains "missing"';
     }
 }
 
