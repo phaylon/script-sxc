@@ -15,7 +15,8 @@ CLASS->add_delegated_items({
 
     'Script::SXC::Library::Core::Sequences'     => [qw( begin )],
 
-    'Script::SXC::Library::Core::Conditionals'  => [qw( if )],
+    'Script::SXC::Library::Core::Conditionals'  
+        => [qw( if unless )],
 
     'Script::SXC::Library::Core::Functions'     => [qw( lambda λ )],
 

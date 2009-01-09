@@ -38,19 +38,22 @@ Examples:
 
 =cut
 
-CLASS->add_inliner('if',
-    via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls, Str :$name!, :$error_cb!) {
-        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 3);
+for my $cond_name (qw( if unless )) {
+    CLASS->add_inliner($cond_name,
+        via => method (Object :$compiler, Object :$env, ArrayRef :$exprs, Bool :$optimize_tailcalls, Str :$name!, :$error_cb!) {
+            CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 3);
 
-        # TODO check args, throw exceptions
-        my ($cnd, $csq, $alt) = @$exprs;
+            # TODO check args, throw exceptions
+            my ($cnd, $csq, $alt) = @$exprs;
 
-        return CompiledConditional->new(
-            condition   => $cnd->compile($compiler, $env),
-            consequence => $csq->compile($compiler, $env, optimize_tailcalls => $optimize_tailcalls),
-           ( $alt ? (alternative => $alt->compile($compiler, $env, optimize_tailcalls => $optimize_tailcalls)) : () ),
-        );
-    },
-);
+            return CompiledConditional->new(
+                mode        => $cond_name,
+                condition   => $cnd->compile($compiler, $env),
+                consequence => $csq->compile($compiler, $env, optimize_tailcalls => $optimize_tailcalls),
+               ( $alt ? (alternative => $alt->compile($compiler, $env, optimize_tailcalls => $optimize_tailcalls)) : () ),
+            );
+        },
+    );
+}
 
 1;
