@@ -132,4 +132,17 @@ sub T800_chunks: Tests {
     }
 }
 
+sub T850_arrow_function: Tests {
+    my $self = self;
+
+    is ref(self->run('(-> 23)')), 'CODE', '-> builds code reference';
+    is self->run('((-> _) 23)'), 23, '-> binds _ correctly';
+    is self->run('((-> (+ _ 10)) 13)'), 23, '-> built function returns correct result';
+    throws_ok { $self->run("(->)") } 'Script::SXC::Exception', "-> without body throws exception";
+    like $@, qr/->/, qq(error message contains "->");
+    like $@, qr/missing/i, 'error message contains "missing"';
+
+    is_deeply self->run('(map (list 2 3 4) (-> (* _ 2)))'), [4, 6, 8], '-> in combination with map returns correct list';
+}
+
 1;

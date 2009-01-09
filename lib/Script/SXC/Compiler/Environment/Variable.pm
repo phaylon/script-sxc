@@ -49,7 +49,8 @@ method as_outer {
 }
 
 method new_anonymous ($class: Str $info?, Str :$sigil?, :$line_number?, :$source_description?) {
-    $info = '' unless defined $info;
+    $info = ''
+        unless defined $info;
 
     # prepare identifier
     my $id = $class->_counted_type('anon') . ($info ? "_$info" : '');
@@ -72,9 +73,11 @@ method new_from_name ($class: Str $name!, Str :$prefix?) {
 
     # prefix defaults to 'lex', must be true, not just defined (no 0, '', undef)
     $prefix ||= 'lex';
+
+    my $internal_name = $name eq '_' ? 'topic' : $name;
     
     # prepare cleaned up identifier
-    (my $id = sprintf '%s_%s', $class->_counted_type($prefix), $name) 
+    (my $id = sprintf '%s_%s', $class->_counted_type($prefix), $internal_name) 
         =~ s/[^a-z0-9_]+//gi;
 
     return $class->new(identifier => $id, symbol_name => $name);
