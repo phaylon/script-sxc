@@ -8,13 +8,15 @@ use MooseX::Types::Moose    qw( Str ArrayRef HashRef Object );
 use CLASS;
 use Scalar::Util qw( weaken refaddr );
 
-use constant VariableClass => 'Script::SXC::Compiler::Environment::Variable';
+use constant VariableClass       => 'Script::SXC::Compiler::Environment::Variable';
+use constant TopEnvironmentClass => 'Script::SXC::Compiler::Environment::Top';
 
 use Script::SXC::lazyload
     VariableClass,
     'Script::SXC::Compiler::Environment::Variable::Outer',
     'Script::SXC::Compiler::Environment::Definition',
     'Script::SXC::Compiler::Environment::Modification',
+    'Script::SXC::Exception::ParseError',
     ['Script::SXC::Exception::UnboundVar', 'UnboundVarException'];
 
 use namespace::clean -except => 'meta';
@@ -39,6 +41,8 @@ has _variables => (
         'exists'    => 'has_variable',
     },
 );
+
+method has_dynamic_variable (Str $name) { exists $self->_variables->{ $name } }
 
 has child_class => (
     is          => 'rw',
@@ -91,10 +95,16 @@ subtype 'Script::SXC::DefinitionMap',
         'DefinitionMaps must be ArrayRefs with Str/Object pairs' 
     };
 
-method build_modification (Object $var!, Object $expr!) {
+method build_modification (Object $var!, Object $expr!, Object :$original_var) {
 
     # forcibly typehint the variable. if there's no typehint, it will be cleared
     $var->try_typehinting_from($expr, or_clear => 1);
+
+    # don't allow modification of globals
+    $original_var->throw_parse_error(
+        'illegal_modification_of_global',
+        sprintf q(Illegal attempt to modify global variable '%s'), $original_var->value,
+    ) if $original_var and not $self->find_env_for_variable($original_var->value)->has_dynamic_variable($original_var->value);
 
     # return the compiled modification
     return Modification->new(variable => $var, expression => $expr);

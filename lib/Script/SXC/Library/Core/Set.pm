@@ -61,11 +61,12 @@ CLASS->add_inliner('set!', via => method (Object :$compiler!, Object :$env!, Str
         unless $var->isa(SymbolClass);
 
     # compile symbol and expression
+    my $original_var = $var;
     $$_ = $$_->compile($compiler, $env)
         for \($var, $expr);
 
     # return a compiled modification object
-    return $env->build_modification($var, $expr);
+    return $env->build_modification($var, $expr, original_var => $original_var);
 });
 
 1;

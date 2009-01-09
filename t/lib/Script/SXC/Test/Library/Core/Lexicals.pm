@@ -92,6 +92,13 @@ sub T500_lexicals: Tests {
     # modifications
     is self->run('(let [(n 23)] (set! n 42) n)'), 42, 'lexical value can be modified';
 
+    # can't modify globals
+    throws_ok { $self->run('(set! + 23)') } 'Script::SXC::Exception::ParseError',
+        'trying to modify global variable throws parse error';
+    like $@, qr/global/i, 'error message contains "global"';
+    like $@, qr/modif(?:y|ication)/i, 'error message contains "modify" or "modification"';
+    is $@->type, 'illegal_modification_of_global', 'exception has correct type';
+
     # set! exceptions
     throws_ok { $self->run('(set! foo 23)') } 'Script::SXC::Exception::UnboundVar',
         'trying to set an undeclared variable throws an unbound variable error';
