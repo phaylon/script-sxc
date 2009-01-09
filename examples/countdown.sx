@@ -28,7 +28,7 @@
 
 (define seconds-left
   (let [(start-timestamp (current-timestamp))]
-    (λ ()
+    (chunk
        (let [(difference (- (+ start-timestamp seconds)
                             (current-timestamp)))]
          (if (<= difference 0)
@@ -42,8 +42,7 @@
          (set! last-seen new)
          (!= old new)))))
 
-(define (done)
-  (say "Done."))
+(define (done) (say "Done."))
 
 (define timeparts
   `((,(* 60 60 24) :day)
