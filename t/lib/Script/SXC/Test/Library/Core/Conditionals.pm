@@ -44,4 +44,53 @@ sub T200_unless: Tests {
     like $@, qr/too many/i, 'error message contains "too many"';
 }
 
+sub T300_cond: Tests {
+    my $self = self;
+
+    is self->run('(cond (0 "a") (1 "b") (else "c"))'), 'b', 'cond returns first true value';
+    is self->run('(cond (0 "a") (#f "b") (else "c"))'), 'c', 'cond returns else consequence result without true clauses';
+    is self->run('(cond (0 "a"))'), undef, 'cond without true clauses or else clause returns undefined value';
+    is self->run('(cond)'), undef, 'cond without arguments returns undefined';
+
+    is_deeply self->run('(define foo 23) (cond ((++ foo) -> { foo: _ }))'), { foo => 24 }, 
+        'inline result application binds value to _';
+
+    {   my $before = self->run('(year: (current-datetime))');
+        my $year   = self->run('(cond ((current-datetime) => :year))');
+        my $after  = self->run('(year: (current-datetime))');
+        ok $before <= $year && $year <= $after, 'value application works with keyword';
+    }
+
+    throws_ok { $self->run('(cond 23)') } 'Script::SXC::Exception::ParseError', 
+        'non-list as condition throws parse error';
+    like $@, qr/cond/, 'error message contains "cond"';
+    like $@, qr/clause/i, 'error message contains "clause"';
+    is $@->type, 'invalid_cond_clause', 'error has correct type';
+
+    throws_ok { $self->run('(cond (#t))') } 'Script::SXC::Exception::ParseError', 
+        'missing consequence throws parse error';
+    like $@, qr/cond/, 'error message contains "cond"';
+    like $@, qr/clause/i, 'error message contains "clause"';
+    is $@->type, 'invalid_cond_clause', 'error has correct type';
+
+    throws_ok { $self->run('(cond (1 2 3 4))') } 'Script::SXC::Exception::ParseError', 
+        'missing consequence throws parse error';
+    like $@, qr/cond/, 'error message contains "cond"';
+    like $@, qr/clause/i, 'error message contains "clause"';
+    is $@->type, 'invalid_cond_clause', 'error has correct type';
+
+    throws_ok { $self->run('(cond (1 2 3))') } 'Script::SXC::Exception::ParseError', 
+        'cond with invalid application type throws parse error';
+    like $@, qr/cond/, 'error message contains "cond"';
+    like $@, qr/application/i, 'error message contains "application"';
+    like $@, qr/->/, 'error message contains "->"';
+    like $@, qr/=>/, 'error message contains "=>"';
+
+    throws_ok { $self->run('(cond (else -> 23))') } 'Script::SXC::Exception::ParseError', 
+        'cond with else clause with too many expressions throws parse error';
+    like $@, qr/cond/, 'error message contains "cond"';
+    like $@, qr/else/, 'error message contains "else"';
+    like $@, qr/too many/i, 'error message contains "too many"';
+}
+
 1;
