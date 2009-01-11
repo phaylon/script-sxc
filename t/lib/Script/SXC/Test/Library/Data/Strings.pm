@@ -145,6 +145,19 @@ sub T520_sprintf: Tests {
     is_deeply self->run('(list (sprintf "[%s]" 3 4))'), ["[3]"], 'sprintf ignores additional values';
 }
 
+sub T600_length: Tests {
+    my $self = self;
 
+    is self->run('(length "foo")'), 3, 'length returns correct result';
+    is self->run('(length "")'), 0, 'length returns correct result on empty string';
+
+    throws_ok { $self->run('(length)') } 'Script::SXC::Exception', 'sprintf with no argument throws error';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/length/, 'error message contains "length"';
+
+    throws_ok { $self->run('(length "foo" "bar")') } 'Script::SXC::Exception', 'length with too many arguments throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/length/, 'error message contains "length"';
+}
 
 1;
