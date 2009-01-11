@@ -7,6 +7,8 @@ use CLASS;
 use List::Util qw( min max );
 use Scalar::Util qw( blessed refaddr );
 
+use Script::SXC::Runtime;
+use Script::SXC::Runtime::Validation;
 use Script::SXC::lazyload
     ['Script::SXC::Compiled::Value',         'CompiledValue'     ],
     ['Script::SXC::Compiled::TypeCheck',     'CompiledTypeCheck' ],
@@ -28,7 +30,7 @@ CLASS->add_delegated_items({
         => [qw( hash hash? keys values hash-ref merge )],
 
     'Script::SXC::Library::Data::Strings'   
-        => [qw( string string? lt? gt? le? ge? eq? ne? join length )],
+        => [qw( string string? lt? gt? le? ge? eq? ne? join length sprintf )],
 
     'Script::SXC::Library::Data::Numbers'   
         => [qw( + - * -- ++ / < > <= >= == != = abs mod even? odd? min max )],
@@ -78,6 +80,7 @@ CLASS->add_procedure('false?',
         not $_ or return undef for @_;
         return 1;
     },
+    inline_fc => 1,
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         # TODO: single value optimization
         my $values = Variable->new_anonymous('false_test_values', sigil => '@');
@@ -96,6 +99,7 @@ CLASS->add_procedure('true?',
         $_ or return undef for @_;
         return $_[-1];
     },
+    inline_fc => 1,
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         # TODO: single value optimization
         my $values = Variable->new_anonymous('true_test_values', sigil => '@');
@@ -111,15 +115,15 @@ CLASS->add_procedure('true?',
 
 CLASS->add_procedure('empty?',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('empty?', [@_], min => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('empty?', [@_], min => 1);
         for my $arg_x (0 .. $#_) {
             my $arg = $_[ $arg_x ];
             given (ref $arg) {
-                when ('ARRAY') { return undef if @$arg }
-                when ('HASH')  { return undef if keys %$arg }
-                when ('')      { return undef if length $arg }
+                when ($_ eq 'ARRAY') { return undef if @$arg }
+                when ($_ eq 'HASH')  { return undef if keys %$arg }
+                when ($_ eq '')      { return undef if length $arg }
                 default {
-                    ArgumentError->throw_to_caller(
+                    Script::SXC::Exception::ArgumentError->throw_to_caller(
                         type    => 'invalid_argument_type',
                         message => "Invalid argument type: Argument $arg_x to empty? is neither a list, hash nor a string",
                     );
@@ -128,6 +132,8 @@ CLASS->add_procedure('empty?',
         }
         return 1;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Script::SXC::Exception::ArgumentError'],
     inliner => method (:$compiler, :$env, :$exprs, :$error_cb, :$name) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
         my $arg_x = 0;
@@ -150,20 +156,22 @@ CLASS->add_procedure('empty?',
 
 CLASS->add_procedure('reverse',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('reverse', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('reverse', [@_], min => 1, max => 1);
         my $item = shift;
         given (ref $item) {
-            when ('ARRAY') { return  [ reverse @$item ] }
-            when ('HASH')  { return +{ reverse %$item } }
-            when ('')      { return    reverse $item    }
+            when ($_ eq 'ARRAY') { return  [ reverse @$item ] }
+            when ($_ eq 'HASH')  { return +{ reverse %$item } }
+            when ($_ eq '')      { return    reverse $item    }
             default {
-                ArgumentError->throw_to_caller(
+                Script::SXC::Exception::ArgumentError->throw_to_caller(
                     type    => 'invalid_argument_type',
                     message => "Invalid argument type: Argument to reverse must be a list, hash or a string",
                 );
             }
         }
     },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Script::SXC::Exception::ArgumentError'],
     inliner => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
         my $expr = $exprs->[0];
@@ -184,13 +192,13 @@ CLASS->add_procedure('reverse',
 
 CLASS->add_procedure('exists?',
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('exists?', [@_], min => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('exists?', [@_], min => 2);
         my ($item, @keys) = @_;
         given (ref $item) {
-            when ('ARRAY') { exists $item->[ $_ ] or return undef for @keys }
-            when ('HASH')  { exists $item->{ $_ } or return undef for @keys }
+            when ($_ eq 'ARRAY') { exists $item->[ $_ ] or return undef for @keys }
+            when ($_ eq 'HASH')  { exists $item->{ $_ } or return undef for @keys }
             default {
-                ArgumentError->throw_to_caller(
+                Script::SXC::Exception::ArgumentError->throw_to_caller(
                     type    => 'invalid_argument_type',
                     message => "Invalid argument type: First argument to exists? must be a list or hash",
                 );
@@ -198,6 +206,8 @@ CLASS->add_procedure('exists?',
         }
         return 1;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Script::SXC::Exception::ArgumentError'],
     inliner => method (:$compiler!, :$env!, :$name!, :$exprs, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 2);
         my ($container, @keys) = @$exprs;
@@ -218,22 +228,24 @@ CLASS->add_procedure('exists?',
 
 CLASS->add_procedure('copy',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('copy', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('copy', [@_], min => 1, max => 1);
         my $item = shift;
         given (ref $item) {
-            when ('ARRAY')                          { return  [ @$item ] }
-            when ('HASH')                           { return +{ %$item } }
-            when ('')                               { return     $item   }
-            when ('Script::SXC::Runtime::Symbol')   { return ref($item)->new(value => $item->value) }
-            when ('Script::SXC::Runtime::Keyword')  { return     $item   }
+            when ($_ eq 'ARRAY')                          { return  [ @$item ] }
+            when ($_ eq 'HASH')                           { return +{ %$item } }
+            when ($_ eq '')                               { return     $item   }
+            when ($_ eq 'Script::SXC::Runtime::Symbol')   { return ref($item)->new(value => $item->value) }
+            when ($_ eq 'Script::SXC::Runtime::Keyword')  { return     $item   }
             default {
-                ArgumentError->throw_to_caller(
+                Script::SXC::Exception::ArgumentError->throw_to_caller(
                     type    => 'invalid_argument_type',
                     message => "Invalid argument type: Unable to make a copy of '$item'. Need either a list, hash, string, symbol or keyword",
                 );
             }
         }
     },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Script::SXC::Exception::ArgumentError'],
     inliner => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
         my $item = $exprs->[0];

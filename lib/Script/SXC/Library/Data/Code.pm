@@ -3,6 +3,8 @@ use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
 
+use Script::SXC::Runtime;
+use Script::SXC::Runtime::Validation;
 use Script::SXC::lazyload
     'Script::SXC::Compiler::Environment::Variable',
     [qw( Script::SXC::Compiled::Value   CompiledValue )];
@@ -15,19 +17,19 @@ extends 'Script::SXC::Library';
 
 CLASS->add_procedure('code?',
     firstclass  => CLASS->build_firstclass_reftest_operator('code?', 'CODE'),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_reftest_operator('CODE'),
 );
 
 method build_firstclass_curry ($lib: Str $name!, CodeRef $arg_builder!) {
     return sub {
-        $lib->runtime_arg_count_assertion($name, [@_], min => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion($name, [@_], min => 2);
         my ($invocant, @args)  = @_;
-        my $apply = CLASS->get_apply;
         return sub {
             @_ = ($invocant, [$arg_builder->([@args], [@_])]);
-            goto $apply;
+            goto \&Script::SXC::Runtime::apply;
         };
-    };
+    }, runtime_req => ['Validation', '+'], runtime_lex => { '$name' => $name, '$arg_builder' => $arg_builder };
 }
 
 method build_inline_curry ($lib: CodeRef $arg_builder!) {
@@ -52,6 +54,7 @@ method build_inline_curry ($lib: CodeRef $arg_builder!) {
 
 CLASS->add_procedure('curry',
     firstclass  => CLASS->build_firstclass_curry('curry', sub ($orig, $rest) { (@$orig, @$rest) }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_curry(sub ($inv, $orig, $rest, $sym) { ($inv, @$orig, $rest) }),
 );
 
@@ -62,6 +65,7 @@ CLASS->add_procedure('curry',
 
 CLASS->add_procedure('rcurry',
     firstclass  => CLASS->build_firstclass_curry('rcurry', sub ($orig, $rest) { (@{ $rest }, @{ $orig }) }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_curry(sub ($inv, $orig, $rest, $sym) {
         return(
             $inv,

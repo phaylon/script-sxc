@@ -3,6 +3,7 @@ use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
 
+use Script::SXC::Exception::ArgumentError;
 use Script::SXC::lazyload
     'Script::SXC::Exception::ArgumentError',
     'Script::SXC::Compiler::Environment::Variable',
@@ -17,23 +18,26 @@ extends 'Script::SXC::Library';
 
 CLASS->add_procedure('+',
     firstclass => sub { my $sum = 0; $sum += $_ for @_; return $sum },
-    inliner => CLASS->build_joining_operator('+'),
+    inline_fc  => 1,
+    inliner    => CLASS->build_joining_operator('+'),
 );
 
 CLASS->add_procedure('-',
     firstclass => sub { return 0 unless @_; my $sum = shift; $sum -= $_ for @_; return $sum },
-    inliner => CLASS->build_joining_operator('-'),
+    inline_fc  => 1,
+    inliner    => CLASS->build_joining_operator('-'),
 );
 
 CLASS->add_procedure('*',
     firstclass => sub { return 0 unless @_; my $sum = shift; $sum *= $_ for @_; return $sum },
-    inliner => CLASS->build_joining_operator('*'),
+    inline_fc  => 1,
+    inliner    => CLASS->build_joining_operator('*'),
 );
 
 CLASS->add_procedure('/',
     firstclass => sub {
         return 0 unless @_;
-        ArgumentError->throw_to_caller(
+        Script::SXC::Exception::ArgumentError->throw_to_caller(
             type        => 'division_by_zero',
             message     => 'Illegal division by zero',
         ) if scalar grep { $_ == 0 } @_;
@@ -41,6 +45,8 @@ CLASS->add_procedure('/',
         $sum /= $_ for @_;
         return $sum;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Script::SXC::Exception::ArgumentError'],
     inliner => CLASS->build_joining_operator('/',
         around_args => sub {
             my ($expr, $compiler, $env) = @_;
@@ -62,9 +68,11 @@ CLASS->add_procedure('/',
 
 CLASS->add_procedure('++', 
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('++', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('++', [@_], min => 1, max => 1);
         return $_[0] + 1;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$name, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
         return CompiledValue->new(content => sprintf '(%s + 1)', $exprs->[0]->compile($compiler, $env)->render);
@@ -73,9 +81,11 @@ CLASS->add_procedure('++',
 
 CLASS->add_procedure('--', 
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('--', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('--', [@_], min => 1, max => 1);
         return $_[0] - 1;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$name, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
         return CompiledValue->new(content => sprintf '(%s - 1)', $exprs->[0]->compile($compiler, $env)->render);
@@ -84,39 +94,47 @@ CLASS->add_procedure('--',
 
 CLASS->add_procedure([qw( == = )],
     firstclass  => CLASS->build_firstclass_equality_operator('==', sub { $_[0] == $_[1] }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_equality_operator('=='),
 );
 
 CLASS->add_procedure('!=',
     firstclass  => CLASS->build_firstclass_nonequality_operator('!=', sub { $_[0] != $_[1] }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_nonequality_operator('!='),
 );
 
 CLASS->add_procedure('<',
     firstclass  => CLASS->build_firstclass_sequence_operator('<', sub { $_[0] < $_[1] }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_sequence_operator('<'),
 );
 
 CLASS->add_procedure('>',
     firstclass  => CLASS->build_firstclass_sequence_operator('>', sub { $_[0] > $_[1] }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_sequence_operator('>'),
 );
 
 CLASS->add_procedure('<=',
     firstclass  => CLASS->build_firstclass_sequence_operator('<=', sub { $_[0] <= $_[1] }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_sequence_operator('<='),
 );
 
 CLASS->add_procedure('>=',
     firstclass  => CLASS->build_firstclass_sequence_operator('>=', sub { $_[0] >= $_[1] }),
+    inline_fc   => 1,
     inliner     => CLASS->build_inline_sequence_operator('>='),
 );
 
 CLASS->add_procedure('abs',
     firstclass  => sub { 
-        CLASS->runtime_arg_count_assertion('abs', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('abs', [@_], min => 1, max => 1);
         return abs shift;
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
         return CompiledValue->new(content => sprintf 'abs(%s)', $exprs->[0]->compile($compiler, $env)->render);
@@ -125,9 +143,11 @@ CLASS->add_procedure('abs',
 
 CLASS->add_procedure('mod',
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('mod', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('mod', [@_], min => 2, max => 2);
         return $_[0] % $_[1];
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);
         # TODO single arg optimisation
@@ -140,11 +160,13 @@ CLASS->add_procedure('mod',
 
 CLASS->add_procedure('odd?',
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('odd?', [@_], min => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('odd?', [@_], min => 1);
         $_ % 2 or return undef
             for @_;
         return 1;
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
         # TODO single arg optimisation
@@ -157,11 +179,13 @@ CLASS->add_procedure('odd?',
 
 CLASS->add_procedure('even?',
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('even?', [@_], min => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('even?', [@_], min => 1);
         not($_ % 2) or return undef
             for @_;
         return 1;
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
         # TODO single arg optimisation
@@ -174,11 +198,13 @@ CLASS->add_procedure('even?',
 
 CLASS->add_procedure('max',
     firstclass  => CLASS->build_direct_firstclass('List::Util', 'max', min => 1),
+    inline_fc   => 1,
     inliner     => CLASS->build_direct_inliner('List::Util', 'max', min => 1),
 );
 
 CLASS->add_procedure('min',
     firstclass  => CLASS->build_direct_firstclass('List::Util', 'min', min => 1),
+    inline_fc   => 1,
     inliner     => CLASS->build_direct_inliner('List::Util', 'min', min => 1),
 );
 

@@ -3,6 +3,8 @@ use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
 
+use Script::SXC::Runtime::Validation;
+
 use Script::SXC::lazyload
     ['Script::SXC::Compiled::Value',    'CompiledValue'],
     ['DateTime',                        'DateTimeClass'];
@@ -16,9 +18,11 @@ extends 'Script::SXC::Library';
 
 CLASS->add_procedure('sleep',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('sleep', [@_], min => 1, max => 1);
-        return usleep $_[0] * 1_000_000;
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('sleep', [@_], min => 1, max => 1);
+        return Time::HiRes::usleep $_[0] * 1_000_000;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Time::HiRes'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
         $compiler->add_required_package('Time::HiRes');
@@ -31,9 +35,11 @@ CLASS->add_procedure('sleep',
 
 CLASS->add_procedure('current-timestamp',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('current-timestamp', [@_], max => 0);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('current-timestamp', [@_], max => 0);
         return time;
     },
+    inline_fc => 1,
+    runtime_req => ['Validation'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, max => 0);
         return CompiledValue->new(
@@ -45,10 +51,12 @@ CLASS->add_procedure('current-timestamp',
 
 CLASS->add_procedure('current-datetime',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('current-datetime', [@_], max => 0);
-        return DateTimeClass->now(time_zone => 'local');
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('current-datetime', [@_], max => 0);
+        return DateTime->now(time_zone => 'local');
     },
-    inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+DateTime'],
+    inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, max => 0);
         $compiler->add_required_package('DateTime');
         return CompiledValue->new(

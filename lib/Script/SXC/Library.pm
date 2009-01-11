@@ -8,6 +8,7 @@ use Scalar::Util qw( blessed );
 use Data::Dump   qw( pp );
 
 use Script::SXC::Types qw( HashRef );
+use Script::SXC::Runtime::Validation;
 
 use Script::SXC::lazyload
     [qw( Script::SXC::Compiled::Value   CompiledValue )],
@@ -69,7 +70,7 @@ method build_joining_operator (Str $operator!, CodeRef :$around_args?) {
 
 method build_firstclass_sequence_operator (Str $operator!, CodeRef $test!) {
     return sub {
-        CLASS->runtime_arg_count_assertion($operator, [@_], min => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion($operator, [@_], min => 2);
         my $last = shift;
         while (@_) {
             return undef
@@ -77,18 +78,18 @@ method build_firstclass_sequence_operator (Str $operator!, CodeRef $test!) {
             $last = shift;
         }
         return 1;
-    };
+    }, runtime_req => ['Validation'], runtime_lex => { '$operator' => $operator, '$test' => $test };
 }
 
 method build_firstclass_equality_operator (Str $operator!, CodeRef $test!) {
     return sub {
-        CLASS->runtime_arg_count_assertion($operator, [@_], min => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion($operator, [@_], min => 2);
         my $val = shift;
         $test->($val, $_) 
             or return undef
             for @_;
         return 1;
-    };
+    }, runtime_req => ['Validation'], runtime_lex => { '$operator' => $operator, '$test' => $test };
 }
 
 method build_direct_inliner ($lib: Str $package!, Str $name!, Int :$min?, Int :$max?) {
@@ -112,7 +113,7 @@ method build_direct_firstclass ($lib: Str $package!, Str $name!, Int :$min?, Int
     $procname //= $name;
     my $proc;
     return sub {
-        $lib->runtime_arg_count_assertion(
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion(
             $procname, [@_],
             ( $min ? (min => $min) : () ),
             ( $max ? (max => $max) : () ),
@@ -122,16 +123,23 @@ method build_direct_firstclass ($lib: Str $package!, Str $name!, Int :$min?, Int
             $proc = do { no strict 'refs'; \&{ "${package}::${name}" } };
         }
         goto $proc;
+    }, runtime_req => ['Validation', '+Class::MOP'], runtime_lex => {
+        '$proc'     => undef,
+        '$package'  => $package,
+        '$name'     => $name,
+        '$min'      => $min,
+        '$max'      => $max,
+        '$procname' => $procname,
     };
 }
 
 method build_firstclass_reftest_operator ($lib: Str $name!, Str $reftype!) {
     return sub {
-        $lib->runtime_arg_count_assertion($name, [@_], min => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion($name, [@_], min => 1);
         ref($_) and ref($_) eq $reftype or return undef
             for @_;
         return 1;
-    };
+    }, runtime_req => ['Validation'], runtime_lex => { '$name' => $name, '$reftype' => $reftype };
 }
 
 method build_inline_reftest_operator ($lib: Str $reftype!) {
@@ -148,7 +156,7 @@ method build_inline_reftest_operator ($lib: Str $reftype!) {
 
 method build_firstclass_nonequality_operator (Str $operator!, CodeRef $test!) {
     return sub {
-        CLASS->runtime_arg_count_assertion($operator, [@_], min => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion($operator, [@_], min => 2);
         my $current = shift;
         while (@_) {
             return undef 
@@ -156,7 +164,7 @@ method build_firstclass_nonequality_operator (Str $operator!, CodeRef $test!) {
             $current = shift;
         }
         return 1;
-    };
+    }, runtime_req => ['Validation'], runtime_lex => { '$operator' => $operator, '$test' => $test };
 }
 
 method build_inline_nonequality_operator (Str $operator!, Str :$perl_operator?, Bool :$to_string?) {
@@ -304,6 +312,8 @@ method check_arg_count ($cb!, Str $name!, ArrayRef $exprs!, Int :$min?, Int :$ma
     ) if defined $max and @$exprs > $max;
 }
 
+=for history
+
 method runtime_arg_count_assertion ($name!, $args!, :$min, :$max) {
     my $got = scalar @$args;
 
@@ -342,6 +352,11 @@ method runtime_type_assertion ($value!, $type!, $message!) {
     }
 }
 
+=cut
+
+sub runtime_type_assertion      { goto \&Script::SXC::Runtime::Validation::runtime_type_assertion }
+sub runtime_arg_count_assertion { goto \&Script::SXC::Runtime::Validation::runtime_arg_count_assertion }
+
 method undef_when_empty (Str $body!) {
     return length($body) ? $body : 'undef';
 }
@@ -363,11 +378,15 @@ method add ($class: $name!, Object $item!) {
     return $item;
 };
 
-method add_procedure ($class: $name!, Method :$firstclass!, Method :$inliner, :$setter?) {
+method add_procedure ($class: $name!, Method :$firstclass!, Method :$inliner, :$setter?, :$inline_fc?, ArrayRef :$runtime_req?, :$runtime_lex) {
+    $runtime_lex //= {};
     my $proc = Procedure->new(
         firstclass  => $firstclass,
-        ($inliner ? (inliner => $inliner) : ()),
-        ($setter  ? (setter  => $setter)  : ()),
+        ($inliner     ? (inliner             => $inliner)     : ()),
+        ($setter      ? (setter              => $setter)      : ()),
+        ($inline_fc   ? (firstclass_inlining => $inline_fc)   : ()),
+        ($runtime_req ? (runtime_req         => $runtime_req) : ()),
+        ($runtime_lex ? (runtime_lex         => $runtime_lex) : ()),
         library     => $class,
         name        => (ref($name) ? $name->[0] : $name),
     );

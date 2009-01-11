@@ -73,14 +73,21 @@ has localize_exceptions => (
     documentation   => 'trap exceptions at apply level and localize them if necessary',
 );
 
+has inline_firstclass_procedures => (
+    is              => 'rw',
+    isa             => Bool,
+    default         => 1,
+    documentation   => 'inline firstclass procedures when possible (default: true)',
+);
 
 method _build_default_reader { ReaderClass->new }
 
 method _build_default_compiler { 
     return CompilerClass->new(
-        optimize_tailcalls          => $self->optimize_tailcalls,
-        force_firstclass_procedures => $self->force_firstclass_procedures,
-        localize_exceptions         => $self->localize_exceptions,
+        optimize_tailcalls           => $self->optimize_tailcalls,
+        force_firstclass_procedures  => $self->force_firstclass_procedures,
+        localize_exceptions          => $self->localize_exceptions,
+        inline_firstclass_procedures => $self->inline_firstclass_procedures,
     );
 }
 

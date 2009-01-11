@@ -116,7 +116,7 @@ method _write_history_file {
     }
     open my $fh, '>:utf8', $self->history_file;
     print $fh sprintf "%s\n", $_
-        for @{ $self->_history };
+        for uniq map { length($_) > 500 ? () : $_ }@{ $self->_history };
 };
 
 method _read_history_file {

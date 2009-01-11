@@ -77,15 +77,17 @@
         (build-string-parts parts rest)))))
 
 (define (fancyjoin strings)
-  (if (= (size strings) 1)
-    (head strings)
-    (if (= (size strings) 2)
-      (join " and " strings)
-      (if (> (size strings) 2)
-        (string (head strings)
-                ", "
-                (fancyjoin (tail strings)))
-        ""))))
+  (let [(string-count (size strings))]
+    (cond
+      [(= string-count 1)
+       (head strings)]
+      [(= string-count 2)
+       (join " and " strings)]
+      [(> string-count 2)
+       (string (head strings)
+               ", "
+               (fancyjoin (tail strings)))]
+      [else ""])))
 
 (define (report seconds)
   (let [(parts (seconds->timeparts seconds timeparts))]

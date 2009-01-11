@@ -27,7 +27,8 @@ extends 'Script::SXC::Library';
 =cut
 
 CLASS->add_procedure('apply',
-    firstclass  => Script::SXC::Runtime->can('apply'),
+    firstclass  => CLASS->build_direct_firstclass('Script::SXC::Runtime', 'apply', min => 2),
+    inline_fc   => 1,
     inliner     => method (:$compiler, :$env, :$name, :$error_cb, :$exprs, :$symbol) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 2);
         my ($invocant, @args) = @$exprs;

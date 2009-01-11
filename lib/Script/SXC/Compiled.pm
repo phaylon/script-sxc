@@ -78,6 +78,7 @@ method evaluated_callback {
 };
 
 method get_full_body {
+    my $body = $self->get_body;     # must come first to populate required packages, etc.
     return join ';', 
         ( $self->use_strict   ? 'use strict'          : 'no strict' ),
         ( $self->use_warnings ? 'use warnings'        : 'no warnings' ),
@@ -86,7 +87,7 @@ method get_full_body {
         'require Scalar::Util',
         ( $self->pre_text     ? $self->pre_text . ';' : () ),
         ( map { sprintf 'require %s', $_ } uniq @{ $self->required_packages } ),
-        $self->get_body;
+        $body;
 };
 
 method get_body {

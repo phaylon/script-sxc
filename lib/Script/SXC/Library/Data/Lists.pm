@@ -3,6 +3,9 @@ use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
 
+use Script::SXC::Runtime;
+use Script::SXC::Runtime::Validation;
+
 use List::Util      qw( min max );
 use List::MoreUtils qw( any all none );
 
@@ -67,6 +70,7 @@ method build_inline_list_application (Str $keyword!, ArrayRef :$required_package
 
 CLASS->add_procedure('list', 
     firstclass  => sub { [@_] },
+    inline_fc   => 1,
     inliner     => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!) {
         return CompiledValue->new(
             content  => sprintf('[( %s )]', join(', ', map { $_->compile($compiler, $env)->render } @$exprs)),
@@ -77,13 +81,15 @@ CLASS->add_procedure('list',
 
 CLASS->add_procedure('head',
     firstclass  => sub ($ls, $num) {
-        CLASS->runtime_arg_count_assertion('head', [@_], min => 1, max => 2);
-        CLASS->runtime_type_assertion($ls, 'list', 'head expects list as first argument');
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('head', [@_], min => 1, max => 2);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'head expects list as first argument');
         $num-- if defined $num;
         return defined $num 
-            ? [ @$ls[0 .. min($num, $#$ls)] ]
+            ? [ @$ls[0 .. List::Util::min($num, $#$ls)] ]
             : ( @$ls ? $ls->[0] : undef );
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+List::Util'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 2);
         my ($ls, $num) = @$exprs;
@@ -126,11 +132,13 @@ CLASS->add_procedure('head',
 
 CLASS->add_procedure('tail',
     firstclass => sub ($ls, $num) {
-        CLASS->runtime_arg_count_assertion('tail', [@_], min => 1, max => 2);
-        CLASS->runtime_type_assertion($ls, 'list', 'tail expects list as first argument');
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('tail', [@_], min => 1, max => 2);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'tail expects list as first argument');
         $num = $#$ls unless defined $num;
-        return [ @$ls[ (@$ls - min(scalar(@$ls), $num)) .. $#$ls ] ];
+        return [ @$ls[ (@$ls - List::Util::min(scalar(@$ls), $num)) .. $#$ls ] ];
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+List::Util'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 2);
         my ($ls, $num) = @$exprs;
@@ -169,10 +177,12 @@ CLASS->add_procedure('tail',
 
 CLASS->add_procedure('size',
     firstclass => sub ($ls) { 
-        CLASS->runtime_arg_count_assertion('size', [@_], min => 1, max => 1);
-        CLASS->runtime_type_assertion($ls, 'list', 'size requires list as argument');
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('size', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'size requires list as argument');
         return scalar @$ls;
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, Str :$name!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
 
@@ -192,10 +202,12 @@ CLASS->add_procedure('size',
 
 CLASS->add_procedure('last-index',
     firstclass => sub ($ls) { 
-        CLASS->runtime_arg_count_assertion('last-index', [@_], min => 1, max => 1);
-        CLASS->runtime_type_assertion($ls, 'list', 'last-index requires list as argument');
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('last-index', [@_], min => 1, max => 1);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'last-index requires list as argument');
         return $#{ $ls };
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs, :$name, :$error_cb) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
 
@@ -215,10 +227,12 @@ CLASS->add_procedure('last-index',
 
 CLASS->add_procedure('list-ref',
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('list-ref', [@_], min => 2, max => 2);
-        CLASS->runtime_type_assertion($_[0], 'list', 'list-ref expects a list as first argument');
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('list-ref', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($_[0], 'list', 'list-ref expects a list as first argument');
         return $_[0]->[ $_[1] ];
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     setter => sub {
         my ($compiler, $env, $args, $expr, $symbol) = @_;
         $symbol->throw_parse_error(missing_setter_args => "Missing arguments: list-ref setter needs list and index arguments")
@@ -258,11 +272,13 @@ CLASS->add_procedure('list-ref',
 
 CLASS->add_procedure('append',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('append', [@_], min => 2);
-        CLASS->runtime_type_assertion($_[ $_ ], 'list', "Invalid argument $_: append expects only list arguments")
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('append', [@_], min => 2);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($_[ $_ ], 'list', "Invalid argument $_: append expects only list arguments")
             for 0 .. $#_;
         return [ map { @$_ } @_ ];
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, Str :$name!, :$error_cb!, Object :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 2);
         return CompiledValue->new(content => sprintf(
@@ -281,11 +297,13 @@ CLASS->add_procedure('append',
 
 CLASS->add_procedure('list?',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('list?', [@_], min => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('list?', [@_], min => 1);
         (ref($_) and ref($_) eq 'ARRAY') or return undef
             for @_;
         return 1;
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
         my $anon = Variable->new_anonymous('list_p_arg');
@@ -307,31 +325,37 @@ CLASS->add_procedure('list?',
 
 CLASS->add_procedure('grep',
     inliner     => CLASS->build_inline_list_application('grep', typehint => 'list'),
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+'],
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('grep', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('grep', [@_], min => 2, max => 2);
         my ($ls, $apply) = @_;
-        CLASS->runtime_type_assertion($ls, 'list', 'grep expects a list as first argument');
-        return [ grep { CLASS->call_in_other_library('Script::SXC::Library::Core::Apply', 'apply', [$apply, [$_]]) } @$ls ];
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'grep expects a list as first argument');
+        return [ grep { Script::SXC::Runtime::apply($apply, [$_]) } @$ls ];
     },
 );
 
 CLASS->add_procedure('map',
     inliner     => CLASS->build_inline_list_application('map', typehint => 'list'),
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+'],
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('map', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('map', [@_], min => 2, max => 2);
         my ($ls, $apply) = @_;
-        CLASS->runtime_type_assertion($ls, 'list', 'map expects a list as first argument');
-        return [ map { CLASS->call_in_other_library('Script::SXC::Library::Core::Apply', 'apply', [$apply, [$_]]) } @$ls ];
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'map expects a list as first argument');
+        return [ map { Script::SXC::Runtime::apply($apply, [$_]) } @$ls ];
     },
 );
 
 CLASS->add_procedure('count',
     inliner     => CLASS->build_inline_list_application('grep', surround_template => 'scalar(%s)', typehint => 'number'),
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+'],
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('count', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('count', [@_], min => 2, max => 2);
         my ($ls, $apply) = @_;
-        CLASS->runtime_type_assertion($ls, 'list', 'count expects a list as first argument');
-        return scalar( grep { CLASS->call_in_other_library('Script::SXC::Library::Core::Apply', 'apply', [$apply, [$_]]) } @$ls );
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'count expects a list as first argument');
+        return scalar( grep { Script::SXC::Runtime::apply($apply, [$_]) } @$ls );
     },
 );
 
@@ -342,11 +366,13 @@ CLASS->add_procedure('any?',
         required_packages => ['List::MoreUtils'],
         typehint          => 'bool',
     ),
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+', '+List::MoreUtils'],
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('any?', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('any?', [@_], min => 2, max => 2);
         my ($ls, $apply) = @_;
-        CLASS->runtime_type_assertion($ls, 'list', 'any? expects a list as first argument');
-        return( (any { CLASS->call_in_other_library('Script::SXC::Library::Core::Apply', 'apply', [$apply, [$_]]) } @$ls) ? 1 : undef );
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'any? expects a list as first argument');
+        return( (List::MoreUtils::any { Script::SXC::Runtime::apply($apply, [$_]) } @$ls) ? 1 : undef );
     },
 );
 
@@ -357,11 +383,13 @@ CLASS->add_procedure('all?',
         required_packages => ['List::MoreUtils'],
         typehint          => 'bool',
     ),
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+', '+List::MoreUtils'],
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('all?', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('all?', [@_], min => 2, max => 2);
         my ($ls, $apply) = @_;
-        CLASS->runtime_type_assertion($ls, 'list', 'all? expects a list as first argument');
-        return( (all { CLASS->call_apply($apply, [$_]) } @$ls) ? 1 : undef );
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'all? expects a list as first argument');
+        return( (List::MoreUtils::all { Script::SXC::Runtime::apply($apply, [$_]) } @$ls) ? 1 : undef );
     },
 );
 
@@ -372,21 +400,25 @@ CLASS->add_procedure('none?',
         required_packages => ['List::MoreUtils'],
         typehint          => 'bool',
     ),
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+', '+List::MoreUtils'],
     firstclass  => sub {
-        CLASS->runtime_arg_count_assertion('none?', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('none?', [@_], min => 2, max => 2);
         my ($ls, $apply) = @_;
-        CLASS->runtime_type_assertion($ls, 'list', 'none? expects a list as first argument');
-        return( (none { CLASS->call_apply($apply, [$_]) } @$ls) ? 1 : undef );
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'none? expects a list as first argument');
+        return( (List::MoreUtils::none { Script::SXC::Runtime::apply($apply, [$_]) } @$ls) ? 1 : undef );
     },
 );
 
 CLASS->add_procedure('pair?',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('pair?', [@_], min => 1);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('pair?', [@_], min => 1);
         ref and ref eq 'ARRAY' and @$_ == 2 or return undef
             for @_;
         return 1;
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
         return CompiledValue->new(typehint => 'bool', content => sprintf
@@ -398,16 +430,17 @@ CLASS->add_procedure('pair?',
 
 CLASS->add_procedure('zip',
     firstclass => sub {
-        CLASS->runtime_arg_count_assertion('zip', [@_], min => 3);
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('zip', [@_], min => 3);
         my ($zipper, @lists) = @_;
-        CLASS->runtime_type_assertion($lists[ $_ ], 'list', "zip argument @{[ $_ + 1 ]} is not a list")
+        Script::SXC::Runtime::Validation->runtime_type_assertion($lists[ $_ ], 'list', "zip argument @{[ $_ + 1 ]} is not a list")
             for 0 .. $#lists;
-        my $apply = CLASS->get_apply;
         return [ map {
             my $at = $_;
-            $apply->($zipper, [ map { $_->[ $at ] } @lists ]);
-        } 0 .. min map { $#$_ } @lists ];
+            Script::SXC::Runtime::apply($zipper, [ map { $_->[ $at ] } @lists ]);
+        } 0 .. List::Util::min map { $#$_ } @lists ];
     },
+    inline_fc   => 1,
+    runtime_req => ['Validation', '+', '+List::Util'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 3);
 

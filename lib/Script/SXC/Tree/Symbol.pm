@@ -22,8 +22,10 @@ method compile (Object $compiler, Object $env, Bool :$fc_inline_optimise?) {
     my $item = $env->find_variable($self);
 
     # wants a compiler
-    if ($item->can('does') and $item->does('Script::SXC::Library::Item::AcceptCompiler')) {
-        $item->accept_compiler($compiler, $env);
+    if ($item->does('Script::SXC::Library::Item::AcceptCompiler')) {
+        my $replacement = $item->accept_compiler($compiler, $env, item_ref => \$item);
+        $item = $replacement
+            if defined $replacement;
     }
 
     # return uncompiled item

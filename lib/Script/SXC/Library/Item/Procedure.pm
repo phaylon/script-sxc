@@ -2,15 +2,17 @@ package Script::SXC::Library::Item::Procedure;
 use Moose;
 use MooseX::Method::Signatures;
 
-use Script::SXC::Types qw( CodeRef HashRef Str Method Str );
+use Script::SXC::Types qw( CodeRef HashRef Str Method Str Bool ArrayRef );
 
 use Data::Dump qw( pp );
+use B::Deparse;
 
 use Script::SXC::lazyload
     ['Script::SXC::Compiled::Value',         'CompiledValue'],
     ['Script::SXC::Compiled::Application',   'CompiledApply'],
     ['Script::SXC::Tree::List',              'ListClass'    ],
     ['Script::SXC::Tree::Builtin',           'BuiltinClass' ],
+    'Script::SXC::Library::Item::Procedure::Inlined',
     'Script::SXC::Compiler::Environment::Variable::Internal';
 
 use namespace::clean -except => 'meta';
@@ -40,8 +42,35 @@ has library => (
     required    => 1,
 );
 
-method accept_compiler (Object $compiler!) {
-    $compiler->add_required_package($self->library);
+has firstclass_inlining => (
+    is          => 'rw',
+    isa         => Bool,
+    default     => 0,
+);
+
+has runtime_req => (
+    is          => 'rw',
+    isa         => ArrayRef,
+    default     => sub { [] },
+);
+
+has runtime_lex => (
+    is          => 'rw',
+    isa         => HashRef,
+    default     => sub { {} },
+);
+
+method accept_compiler (Object $compiler!, ScalarRef :$item_ref) {
+
+    if ($compiler->inline_firstclass_procedures and $self->firstclass_inlining) {
+
+        return Inlined->new(%$self, compiler => $compiler);
+    }
+    else {
+
+        $compiler->add_required_package($self->library);
+        return undef;
+    }
 }
 
 with 'Script::SXC::Library::Item::AcceptCompiler';
