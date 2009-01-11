@@ -62,7 +62,7 @@
                (full  (- seconds left))
                (count (/ full multiplier))]
           (merge { field count }
-                   (seconds->timeparts left rest)))
+                 (seconds->timeparts left rest)))
         (seconds->timeparts seconds rest)))))
 
 (define (build-string-parts parts fields)
