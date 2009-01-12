@@ -63,7 +63,7 @@
                (count (/ full multiplier))]
           (merge { field count }
                  (seconds->timeparts left rest)))
-        (seconds->timeparts seconds rest)))))
+        (goto seconds->timeparts seconds rest)))))
 
 (define (build-string-parts parts fields)
   (if (empty? fields)
@@ -74,16 +74,16 @@
       (if count
         (append (list (quant field count))
                 (build-string-parts parts rest))
-        (build-string-parts parts rest)))))
+        (goto build-string-parts parts rest)))))
 
 (define (fancyjoin strings)
-  (let [(string-count (size strings))]
+  (given (size strings)
     (cond
-      [(= string-count 1)
+      [(= _ 1)
        (head strings)]
-      [(= string-count 2)
+      [(= _ 2)
        (join " and " strings)]
-      [(> string-count 2)
+      [(> _ 2)
        (string (head strings)
                ", "
                (fancyjoin (tail strings)))]

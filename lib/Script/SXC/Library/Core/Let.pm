@@ -137,6 +137,26 @@ CLASS->add_inliner('let', via =>
     return $scope;
 });
 
+CLASS->add_inliner('given', via =>
+    method (Object :$compiler!, Object :$env!, Str :$name!, ArrayRef :$exprs!, :$error_cb!, :$optimize_tailcalls, Object :$symbol!) {
+        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2);
+        my ($value, @body) = @$exprs;
+
+        my $new = $symbol->new_item_with_source(List => { contents => [
+            $symbol->new_item_with_source(Builtin => { value => 'let' }),
+            $symbol->new_item_with_source(List => { contents => [
+                $symbol->new_item_with_source(List => { contents => [
+                    $symbol->new_item_with_source(Symbol => { value => '_' }),
+                    $value,
+                ]}),
+            ]}),
+            @body,
+        ]});
+        
+        return $new->compile($compiler, $env);
+    }
+);
+
 =head2 let*
 
 =head2 let-rec

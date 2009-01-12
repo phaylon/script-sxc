@@ -6,13 +6,21 @@ use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
 
-sub T500_lexicals: Tests {
-    my $self = shift;
+sub T100_let: Tests {
 
-    # simple let
+    # simple
     is self->run('(let [(n 23)] n)'), 23, 'simple let with one constant definition returns value';
-    
-    # common for all standard let types
+
+    # let with two vars and complex expressions
+    {   my $lambda = self->run('(λ (p1 p2 p3) (let [(n (p1)) (m (p2))] (p3 n m)))');
+        is ref($lambda), 'CODE', 'complex let with two variables and complex expressions compiles';
+        is $lambda->(sub { 23 }, sub { 42 }, sub { $_[0] + $_[1] }), 65, 'complex let compiled correctly';
+    }
+}
+
+sub T050_let_common: Tests {
+    my $self = self;
+
     for my $let ('let', 'let*', 'let-rec') {
 
         # no arguments
@@ -54,12 +62,10 @@ sub T500_lexicals: Tests {
         like $@, qr/\Q$let\E/i, 'error message contains "'.$let.'"';
         like $@, qr/pairs/i, 'error message contains "pairs"';
     }
+}
 
-    # let with two vars and complex expressions
-    {   my $lambda = self->run('(λ (p1 p2 p3) (let [(n (p1)) (m (p2))] (p3 n m)))');
-        is ref($lambda), 'CODE', 'complex let with two variables and complex expressions compiles';
-        is $lambda->(sub { 23 }, sub { 42 }, sub { $_[0] + $_[1] }), 65, 'complex let compiled correctly';
-    }
+sub T200_let_binding: Tests {
+    my $self = self;
 
     # normal let can't bind earlier variable
     throws_ok { $self->run('(let ((n 23) (m n)) m)') } 'Script::SXC::Exception::UnboundVar',
@@ -69,27 +75,34 @@ sub T500_lexicals: Tests {
 
     # let and let* can't bind to variable specified in same pair
     for my $let ('let', 'let*') {
+
         throws_ok { $self->run("($let ((n (λ (f) (f n)))) n)") } 'Script::SXC::Exception::UnboundVar',
             "accessing variable declared in same pair of $let variable specification throws unbound variable error";
         is $@->name, 'n', 'correct unbound variable referenced in error message';
         like $@, qr/let-rec.+instead/i, 'error message recommends let-rec instead';
     }
+}
 
-    # let*
+sub T120_sequential_let: Tests {
+
     is self->run('(let* [(n 23) (m (λ () n))] (m))'), 23, 'let* gives variables sequential access';
+}
 
-    # let-rec
-    {   is ref(my $letrec = self->run('(lambda (t) (let-rec ((f (λ () (if (t) (f) ())))) (f)))')), 'CODE',
-            'let-rec with recursive definition compiles';
-        my ($left, $num) = (5, 1);
-        is_deeply $letrec->(sub {
-            BAIL_OUT("too many calls in let-rec recursion test") if $num == 10;
-            ok 1, sprintf 'recursive call in let-rec number %d successful', $num++;
-            return --$left;
-        }), [], 'let-rec with recursive definition returns correct value';
-    }
+sub T140_recursive_let: Tests {
 
-    # modifications
+    is ref(my $letrec = self->run('(lambda (t) (let-rec ((f (λ () (if (t) (f) ())))) (f)))')), 'CODE',
+        'let-rec with recursive definition compiles';
+    my ($left, $num) = (5, 1);
+    is_deeply $letrec->(sub {
+        BAIL_OUT("too many calls in let-rec recursion test") if $num == 10;
+        ok 1, sprintf 'recursive call in let-rec number %d successful', $num++;
+        return --$left;
+    }), [], 'let-rec with recursive definition returns correct value';
+}
+
+sub T600_modifications: Tests {
+    my $self = self;
+
     is self->run('(let [(n 23)] (set! n 42) n)'), 42, 'lexical value can be modified';
 
     # can't modify globals
@@ -103,15 +116,29 @@ sub T500_lexicals: Tests {
     throws_ok { $self->run('(set! foo 23)') } 'Script::SXC::Exception::UnboundVar',
         'trying to set an undeclared variable throws an unbound variable error';
     is $@->name, 'foo', 'error message references correct variable';
+
     throws_ok { $self->run('(let ((foo 23)) (set! foo))') } 'Script::SXC::Exception::ParseError',
         'missing value to set! throws parse error';
     like $@, qr/missing/i, 'error message contains "missing"';
+
     throws_ok { $self->run('(let ((foo 23)) (set! foo 777 3))') } 'Script::SXC::Exception::ParseError',
         'too many arguments to set! throws parse error';
     like $@, qr/too many/i, 'error message contains "missing"';
+
     throws_ok { $self->run('(set! :foo 23)') } 'Script::SXC::Exception::ParseError',
         'trying to set a non symbol throws parse error';
     like $@, qr/symbol/i, 'error message contains "symbol"';
+}
+
+sub T700_given: Tests {
+    my $self = self;
+
+    is self->run('(given 23 _)'), 23, 'simplest given returns correct result';
+    is self->run('(given 7 (* _ 2))'), 14, 'given topic in application returns correct result';
+
+    throws_ok { $self->run('(given 23)') } 'Script::SXC::Exception', 'given with single argument throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/given/, 'error message contains "given"';
 }
 
 1;

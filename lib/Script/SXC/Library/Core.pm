@@ -21,7 +21,8 @@ CLASS->add_delegated_items({
     'Script::SXC::Library::Core::Functions'     
         => [qw( lambda λ chunk λ… -> )],
 
-    'Script::SXC::Library::Core::Let'           => [qw( let let* let-rec )],
+    'Script::SXC::Library::Core::Let'           
+        => [qw( let let* let-rec given )],
 
     'Script::SXC::Library::Core::Set'           => [qw( set! )],
 
