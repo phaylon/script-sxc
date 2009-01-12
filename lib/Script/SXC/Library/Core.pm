@@ -48,6 +48,9 @@ CLASS->add_delegated_items({
                 with-input-from-string  with-output-to-string
                 with-input-from-handle  with-output-to-handle
             )],
+
+    'Script::SXC::Library::Core::Packages'
+        => [qw( require )],
 });
 
 CLASS->add_inliner('builtin', via => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {

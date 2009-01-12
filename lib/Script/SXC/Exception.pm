@@ -6,8 +6,8 @@ use Script::SXC::Types qw( Str Int );
 use Scalar::Util qw( blessed );
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 use overload '""' => sub { (shift)->error_message }, fallback => 1;
+use Method::Signatures;
 
 with 'Script::SXC::SourcePosition';
 
@@ -25,6 +25,28 @@ has type => (
 );
 
 method build_default_message { undef }
+
+method throw_to_caller ($class: :$message!, :$type!, :$up?) {
+
+    my $vars = peek_my(defined($up) ? $up : 2);
+#    warn dump $vars;
+    if (exists $vars->{'$___SXC_CALLER_INFO___'}) {
+        my $cinfo = ${ $vars->{'$___SXC_CALLER_INFO___'} };
+        return $class->throw(
+            type    => $type,
+            message => $message,
+            %$cinfo,
+        );
+    }
+
+    my $c = defined($up) ? caller($up) : caller(2);
+    return $class->throw(
+        type                => $type,
+        message             => $message,
+        source_description  => sprintf('(package %s, subroutine %s, file %s)', $c->package, $c->subroutine, $c->filename),
+        line_number         => $c->line,
+    );
+}
 
 method throw (%args) {
     my $class = ref($self) || $self;
