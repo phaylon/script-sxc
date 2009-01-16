@@ -33,13 +33,16 @@ CLASS->add_delegated_items({
         => [qw( string string? lt? gt? le? ge? eq? ne? join length sprintf )],
 
     'Script::SXC::Library::Data::Numbers'   
-        => [qw( + - * -- ++ / < > <= >= == != = abs mod even? odd? min max )],
+        => [qw( + - * -- ++ / < > <= >= == != = abs mod even? odd? min max sqrt )],
 
     'Script::SXC::Library::Data::Code'
         => [qw( code? curry rcurry )],
 
     'Script::SXC::Library::Data::Regex'
         => [qw( match match-all named-match named-match-full regex? )],
+
+    'Script::SXC::Library::Data::Objects'
+        => [qw( object? isa? can? does? )],
 });
 
 #   list-ref ideas:

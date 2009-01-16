@@ -3,7 +3,10 @@ use Moose;
 
 use Script::SXC::Types qw( Str Int );
 
-use Scalar::Util qw( blessed );
+use Perl6::Caller;
+use PadWalker       qw( peek_my );
+use Data::Dump      qw( dump );
+use Scalar::Util    qw( blessed );
 
 use namespace::clean -except => 'meta';
 use overload '""' => sub { (shift)->error_message }, fallback => 1;
@@ -26,7 +29,7 @@ has type => (
 
 method build_default_message { undef }
 
-method throw_to_caller ($class: :$message!, :$type!, :$up?) {
+method throw_to_caller ($class: :$message!, :$type!, :$up?, :$line_number, :$source_description) {
 
     my $vars = peek_my(defined($up) ? $up : 2);
 #    warn dump $vars;

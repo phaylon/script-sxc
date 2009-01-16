@@ -50,7 +50,7 @@ CLASS->add_delegated_items({
             )],
 
     'Script::SXC::Library::Core::Packages'
-        => [qw( require )],
+        => [qw( require define-package )],
 });
 
 CLASS->add_inliner('builtin', via => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {

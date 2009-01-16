@@ -3,6 +3,7 @@ use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
 
+use Script::SXC::Runtime::Validation;
 use Script::SXC::Exception::ArgumentError;
 use Script::SXC::lazyload
     'Script::SXC::Exception::ArgumentError',
@@ -15,6 +16,22 @@ use CLASS;
 use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Library';
+
+CLASS->add_procedure('sqrt',
+    firstclass  => sub {
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('sqrt', [@_], min => 1, max => 1);
+        return sqrt shift;
+    },
+    inline_fc   => 1,
+    runtime_req => ['Validation'],
+    inliner     => method (:$compiler, :$env, :$name, :$error_cb, :$exprs, :$symbol) {
+        CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 1);
+        return CompiledValue->new(
+            typehint => 'number',
+            content  => sprintf 'sqrt(%s)', $exprs->[0]->compile($compiler, $env)->render,
+        );
+    },
+);
 
 CLASS->add_procedure('+',
     firstclass => sub { my $sum = 0; $sum += $_ for @_; return $sum },
