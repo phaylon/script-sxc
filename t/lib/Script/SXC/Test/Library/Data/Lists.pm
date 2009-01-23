@@ -9,6 +9,7 @@ use self;
 
 
 sub T100_creation: Tests {
+
     is_deeply self->run('(list 1 (list 2 3) (list (list 4 (list 5))))'), [1, [2, 3], [[4, [5]]]], 'explicit list creation';
     is_deeply self->run('(list)'), [], 'explicit empty list creation';
     is_deeply self->run('()'), [], 'implicit empty list creation';
@@ -19,10 +20,13 @@ sub T120_append: Tests {
 
     is_deeply self->run('(append (list 2 3) (list 4 5))'), [2, 3, 4, 5], 'append returns new list with merge of two lists';
     is_deeply self->run('(append (list 2 3) (list 4 5) (list 3))'), [2, 3, 4, 5, 3], 'append returns new list with merge of three lists';
+
     throws_ok { $self->run('(append)') } 'Script::SXC::Exception', 'append without arguments throws error';
     like $@, qr/missing/i, 'error message contains "missing"';
+
     throws_ok { $self->run('(append (list 2 3))') } 'Script::SXC::Exception', 'append with only one argument throws error';
     like $@, qr/missing/i, 'error message contains "missing"';
+
     throws_ok { $self->run('(append (list 2 3) 4 (list 5 6))') } 'Script::SXC::Exception', 'append with non list argument throws error';
     like $@, qr/invalid\s+argument\s+1/i, 'error message contains "invalid argument 1"';
     like $@, qr/list/i, 'error message contains "list"';
@@ -33,15 +37,19 @@ sub T200_head: Tests {
 
     is self->run('(head (list 1 2 3))'), 1, 'head without argument returns first element';
     is self->run('(head (list))'), undef, 'head without argument and with empty list returns undef';
+
     is_deeply self->run('(head (list 23 2 3) 1)'), [23], 'head with one as number returns list with one element';
     is_deeply self->run('(head (list 1 2 3 4) 2)'), [1, 2], 'head with number returns first number of elements';
     is_deeply self->run('(head (list 1 2 3) 5)'), [1, 2, 3], 'head with number and too small list returns complete list';
     is_deeply self->run('(head (list) 3)'), [], 'head with number but empty list returns empty list';
+
     throws_ok { $self->run('(head)') } 'Script::SXC::Exception', 'head without arguments throws error';
     like $@, qr/missing/i, 'error message contains "missing"';
+
     throws_ok { $self->run('(head 23)') } 'Script::SXC::Exception', 'head with non list argument throws error';
     like $@, qr/argument/i, 'error message contains "argument"';
     like $@, qr/list/i, 'error message contains "list"';
+
     throws_ok { $self->run('(head (list 2 3) 4 5)') } 'Script::SXC::Exception', 'head with too many arguments throws error';
     like $@, qr/too many/i, 'error message contains "too many"';
 }
@@ -54,16 +62,18 @@ sub T210_tail: Tests {
     is_deeply self->run('(tail (list 1 2 3 4) 2)'), [3, 4], 'tail with number returns number of elements from the end of the list';
     is_deeply self->run('(tail (list 1 2 3) 5)'), [1, 2, 3], 'tail with number and too small list returns complete list';
     is_deeply self->run('(tail (list) 3)'), [], 'tail with number but empty list returns empty list';
+
     throws_ok { $self->run('(tail)') } 'Script::SXC::Exception', 'tail without arguments throws error';
     like $@, qr/missing/i, 'error message contains "missing"';
+
     throws_ok { $self->run('(tail 23)') } 'Script::SXC::Exception', 'tail with non list argument throws error';
-    like $@, qr/argument/i, 'error message contains "argument"';
     like $@, qr/list/i, 'error message contains "list"';
+
     throws_ok { $self->run('(tail (list 2 3) 4 5)') } 'Script::SXC::Exception', 'tail with too many arguments throws error';
     like $@, qr/too many/i, 'error message contains "too many"';
 }
 
-sub T220_tail: Tests {
+sub T220_size: Tests {
     my $self = self;
 
     is self->run('(size (list "foo" "bar" "baz"))'), 3, 'size returns correct size of list';
@@ -238,12 +248,15 @@ sub T632_predicate_none: Tests {
     is self->run('(none? (list { x: 0 } { x: 23 }) :x)'), undef, 'false none? swapped invocant hash application returns undefined value';
     is self->run('(none? (list 0 1 2)   (list "" #f 0 23))'), 1, 'true none? list application returns true';
     is self->run('(none? (list 0 1 2 3) (list "" #f 0 23))'), undef, 'false none? list application returns undefined value';
+
     throws_ok { $self->run('(none? (list 2 3))') } 'Script::SXC::Exception', 'none? with single argument throws exception';
     like $@, qr/missing/i, 'error message contains "missing"';
     like $@, qr/none\?/, 'error message contains "none?"';
+
     throws_ok { $self->run('(none? (list 2 3) (λ n n) (λ m m))') } 'Script::SXC::Exception', 'none? with too many arguments throws exception';
     like $@, qr/too many/i, 'error message contains "too many"';
     like $@, qr/none\?/, 'error message contains "none?"';
+
     throws_ok { $self->run('(none? (hash x: 23) (λ x x))') } 'Script::SXC::Exception', 'none? with non list throws exception';
     like $@, qr/none\?/, 'error message contains "none?"';
     like $@, qr/list/i, 'error message contains "list"';
@@ -259,9 +272,30 @@ sub T640_predicate_pair: Tests {
     is self->run('(pair? { x: 23 })'), undef, 'pair? returns undefined value on hash';
     is self->run('(pair? (list 2 3) (list 4 5))'), 1, 'pair? returns true on multiple pairs';
     is self->run('(pair? (list 2 3) (list 3 4 5))'), undef, 'pair? returns true on multiple pairs and non pairs';
+
     throws_ok { $self->run('(pair?)') } 'Script::SXC::Exception', 'pair? without arguments throws exception';
     like $@, qr/missing/i, 'error message contains "missing"';
     like $@, qr/pair\?/, 'error message contains "pair?"';
+}
+
+sub T650_for_iteration: Tests {
+    my $self = self;
+
+    is_deeply self->run('(let [(r ())] (for (list 1 2 3) [-> (set! r (append r (list _)))]))'), [1, 2, 3],
+        'for iteration over list returns correct result';
+    is_deeply self->run('(let [(r ())] (for (range 1 16 step: [-> (* _ 2)]) [-> (set! r (append r (list _)))]))'), [1, 2, 4, 8, 16],
+        'for iteration over range returns correct result';
+
+    throws_ok { $self->run('(for (list 2 3))') } 'Script::SXC::Exception', 'for with single argument throws exception';
+    like $@, qr/missing/i, 'error message contains "missing"';
+    like $@, qr/for/, 'error message contains "for"';
+
+    throws_ok { $self->run('(for (list 2 3) (λ n n) (λ m m))') } 'Script::SXC::Exception', 'for with too many arguments throws exception';
+    like $@, qr/too many/i, 'error message contains "too many"';
+    like $@, qr/for/, 'error message contains "for"';
+
+    throws_ok { $self->run('(for (hash x: 23) (λ x x))') } 'Script::SXC::Exception', 'for with non list throws exception';
+    like $@, qr/list/i, 'error message contains "list"';
 }
 
 sub T700_zip: Tests {

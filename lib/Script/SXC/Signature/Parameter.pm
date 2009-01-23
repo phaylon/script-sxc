@@ -32,6 +32,16 @@ has symbol => (
     },
 );
 
+has is_optional => (
+    is          => 'rw',
+    isa         => Bool,
+);
+
+has is_named => (
+    is          => 'rw',
+    isa         => Bool,
+);
+
 method compile_validations (Object $compiler!, Object $env!, Bool :$rest_container?) {
     my @validations;
 
@@ -49,13 +59,14 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
     return \@validations;
 }
 
-method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
+method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!, Bool :$is_named, Bool :$is_optional) {
+    my %flags = (is_named => $is_named, is_optional => $is_optional);
 
     # we have been given just a symbol
     if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa(VariableClass)) {
 
         # we just have the name
-        return $class->new(symbol => $item);
+        return $class->new(symbol => $item, %flags);
     }
 
     # it must be a list if it's not a symbol
@@ -94,7 +105,7 @@ method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
     }
 
     # finished parameter
-    return $class->new(%attrs);
+    return $class->new(%flags, %attrs);
 }
 
 method prepare_where_clause_expression (Str $class: Object $key!, ArrayRef $args!, Object $compiler!, Object $env!, Object :$symbol!) {

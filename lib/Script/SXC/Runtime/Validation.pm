@@ -30,10 +30,10 @@ sub runtime_arg_count_assertion {
 
 my %InternalRuntimeType = (
     'string'        => sub { not ref $_[0] and defined $_[0] },
-    'object'        => sub { blessed $_[0] },
+    'object'        => sub { blessed $_[0] and not $_[0]->isa('Script::SXC::Runtime::Object') },
     'keyword'       => sub { blessed $_[0] and $_[0]->isa('Script::SXC::Runtime::Keyword') },
     'symbol'        => sub { blessed $_[0] and $_[0]->isa('Script::SXC::Runtime::Symbol') },
-    'list'          => sub { ref $_[0] and ref $_[0] eq 'ARRAY' },
+    'list'          => sub { (ref $_[0] and ref $_[0] eq 'ARRAY') or (blessed $_[0] and $_[0]->isa('Script::SXC::Runtime::Range')) },
     'hash'          => sub { ref $_[0] and ref $_[0] eq 'HASH' },
     'code'          => sub { ref $_[0] and ref $_[0] eq 'CODE' },
     'regex'         => sub { ref $_[0] and ref $_[0] eq 'Regexp' },

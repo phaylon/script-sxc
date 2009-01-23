@@ -9,6 +9,8 @@ use overload
     '""'     => 'stringify',
     fallback => 1;
 
+extends 'Script::SXC::Runtime::Object';
+
 has value => (
     is          => 'ro',
     isa         => Str,

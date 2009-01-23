@@ -23,8 +23,11 @@ extends 'Script::SXC::Library';
 
 CLASS->add_delegated_items({
 
-    'Script::SXC::Library::Data::Lists'     
-        => [qw( list list? head tail size last-index list-ref append map grep count any? all? none? pair? zip )],
+    'Script::SXC::Library::Data::Lists'
+        => [qw(
+                list list? head tail size last-index list-ref
+                append map grep count any? all? none? pair? zip range for
+           )],
 
     'Script::SXC::Library::Data::Hashes'    
         => [qw( hash hash? keys values hash-ref merge )],

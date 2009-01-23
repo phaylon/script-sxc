@@ -66,17 +66,19 @@ has error_class => (
     default     => 'Script::SXC::Exception::TypeError',
 );
 
+# exclude runtime objects (symbols, keywords)
 my %InternalRuntimeType = (
     'string'        => '(not(ref(%s)) and defined(%s))',
-    'object'        => 'Scalar::Util::blessed(%s)',
-    'keyword'       => '(blessed(%s) and (%s)->isa(q(Script::SXC::Runtime::Keyword)))',
-    'symbol'        => '(blessed(%s) and (%s)->isa(q(Script::SXC::Runtime::Symbol)))',
-    'list'          => '(ref(%s) and ref(%s) eq q(ARRAY))',
+    'object'        => '(Scalar::Util::blessed(%s) and not(%s->isa(q(Script::SXC::Runtime::Object))))',
+    'keyword'       => '(Scalar::Util::blessed(%s) and (%s)->isa(q(Script::SXC::Runtime::Keyword)))',
+    'symbol'        => '(Scalar::Util::blessed(%s) and (%s)->isa(q(Script::SXC::Runtime::Symbol)))',
+    'list'          => '((ref(%s) and ref(%s) eq q(ARRAY)) or (Scalar::Util::blessed(%s) and %s->isa(q(Script::SXC::Runtime::Range))))',
+    'range'         => '(Scalar::Util::blessed(%s) and %s->isa(q(Script::SXC::Runtime::Range)))',
     'hash'          => '(ref(%s) and ref(%s) eq q(HASH))',
     'code'          => '(ref(%s) and ref(%s) eq q(CODE))',
     'defined'       => 'defined(%s)',
 );
-my @InternalRuntimeTypeOrder = qw( defined string list hash code object keyword symbol );
+my @InternalRuntimeTypeOrder = qw( defined string range list hash code object keyword symbol );
 
 method render {
 
@@ -84,7 +86,8 @@ method render {
     my $result_var = Variable->new_anonymous('ts_result')->render;
     my $if_state   = 'if';
 
-    return sprintf 'do { my %s = %s; my %s; %s else { %s->throw(%s, message => "%s") } %s }',
+    return sprintf 'do { require %s; my %s = %s; my %s; %s else { %s->throw(%s, message => "%s") } %s }',
+        $self->error_class,
         $value_var,
         $self->render_expression,
         $result_var,

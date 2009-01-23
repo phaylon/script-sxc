@@ -36,7 +36,46 @@ has rest_parameter => (
     },
 );
 
+has named_parameters => (
+    metaclass   => 'Collection::Array',
+    is          => 'rw',
+    isa         => ArrayRef[Object],
+    required    => 1,
+    default     => sub { [] },
+    lazy        => 1,
+    provides    => {
+        'count'     => 'named_parameter_count',
+    },
+);
+
+method all_parameters {
+    return @{ $self->fixed_parameters },
+           @{ $self->named_parameters },
+           $self->rest_parameter // ();
+}
+
+method required_parameter_count {
+    return scalar grep { not $_->is_optional } @{ $self->fixed_parameters }, @{ $self->named_parameters };
+}
+
 method compile_validations (Object $compiler!, Object $env!) {
+    my @validations;
+
+    # calculate argument count boundaries
+    my $min = $self->required_parameter_count;
+    my $max = $self->rest_parameter ? undef : $self->fixed_parameter_count + ($self->named_parameter_count * 2);
+
+    # argument count
+    push @validations, CompiledArgCountCheck->new(min => $min)
+        if $min;
+    push @validations, CompiledArgCountCheck->new(max => $max)
+        if defined $max;
+
+    # general validations
+    push @validations, map { @{ $_->compile_validations($compiler, $env) } } $self->all_parameters;
+}
+
+method D___compile_validations (Object $compiler!, Object $env!) {
     return [ 
         ( $self->fixed_parameter_count ? CompiledArgCountCheck->new(min => $self->fixed_parameter_count) : () ),
         ( $self->rest_parameter ? () : CompiledArgCountCheck->new(max => $self->fixed_parameter_count) ),
@@ -68,6 +107,18 @@ method as_definition_map {
     ];
 };
 
+method _is_rest_indicator ($class: $item) {
+    $item->isa('Script::SXC::Tree::Dot') or $item->isa('Script::SXC::Tree::Keyword') and $item->value eq 'rest';
+}
+
+method _is_optional_indicator ($class: $item) {
+    $item->isa('Script::SXC::Tree::Keyword') and $item->value eq 'optional';
+}
+
+method _is_named_indicator ($class: $item) {
+    $item->isa('Script::SXC::Tree::Keyword') and $item->value eq 'named';
+}
+
 method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
 
     # grab-all when symbol is given
@@ -83,12 +134,26 @@ method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
     my @sig_parts = @{ $item->contents };
 
     # walk the items and collect parameters
-    my (@fixed_params, $rest);
+    my (@fixed_params, $rest, $is_optional, $is_named);
   SIGPART:
     while (my $sig_part = shift @sig_parts) {
 
+        # if the optional flag is set, the following parameters will be optional
+        if ($class->_is_optional_indicator($sig_part)) {
+
+            $is_optional = 1;
+            next SIGPART;
+        }
+
+        # if the named flag is set, the following parameters will be named
+        if ($class->_is_named_indicator($sig_part)) {
+
+            $is_named = 1;
+            next SIGPART;
+        }
+
         # if we encounter a dot, we found the rest specification
-        if ($sig_part->isa('Script::SXC::Tree::Dot')) {
+        if ($class->_is_rest_indicator($sig_part)) {
 
             # bark if there are too many rest parameters
             $item->throw_parse_error(invalid_signature => 'Too many rest parameters specified')

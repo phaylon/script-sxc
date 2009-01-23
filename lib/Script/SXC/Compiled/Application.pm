@@ -84,11 +84,12 @@ method render_object_application (Object $invocant!, Str $args!, ArrayRef $raw_a
     my $method_var = Variable->new_anonymous('method');
     my $args_var   = Variable->new_anonymous('method_args', sigil => '@');
     my ($method, @args) = @$raw_args;
-    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s->%s(%s) })',
+    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s; %s->%s(%s) })',
         $args_var->render,
         $args,
         $method_var->render,
         $args_var->render,
+        $self->_render_method_check($invocant, $method_var, 1),
         $invocant->render,
         $method_var->render,
         $args_var->render;
@@ -98,14 +99,39 @@ method render_string_application (Object $invocant!, Str $args!, ArrayRef $raw_a
     my $method_var = Variable->new_anonymous('classmethod');
     my $args_var   = Variable->new_anonymous('classmethod_args', sigil => '@');
     my ($method, @args) = @$raw_args;
-    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s->%s(%s) })',
+    return sprintf '(do { %s; my %s = (%s); my %s = q() . shift(%s); %s; %s->%s(%s) })',
+        sprintf(
+            'unless (%s =~ /^\D/) { require %s; %s->throw(%s, %s) }',
+            $invocant->render,
+            ('Script::SXC::Exception') x 2,
+            sprintf(
+                q(message => join('', "Invalid class name for method call: '", %s, "'")),
+                $invocant->render,
+            ),
+            pp(type => 'invalid_invocant_type', $self->source_information),
+        ),
         $args_var->render,
         $args,
         $method_var->render,
         $args_var->render,
+        $self->_render_method_check($invocant, $method_var, 0),
         $invocant->render,
         $method_var->render,
         $args_var->render;
+}
+
+method _render_method_check (Object $invocant_var!, Object $method_var!, Bool $is_object!) {
+    return sprintf 'unless (%s->can(%s)) { require %s; %s->throw(%s, %s) }',
+        $invocant_var->render,
+        $method_var->render,
+        ('Script::SXC::Exception') x 2,
+        sprintf(
+            q(message => join('', "Unable to call method '%s' on %s ", %s)),
+            $method_var->render,
+            ($is_object ? 'instance of class' : 'class'),
+            ($is_object ? sprintf('ref(%s)', $invocant_var->render) : $invocant_var->render),
+        ),
+        pp(type => 'missing_method', $self->source_information);
 }
 
 method _render_single_value_check (Str $args!, Str $type!) {
@@ -242,7 +268,7 @@ method render {
             }
             default {
                 $self->invocant->throw_parse_error(
-                    'invalid_invocant',
+                    'invalid_invocant_type',
                     sprintf("Invalid invocant: Don't know how to apply %s", $self->invocant_typehint),
                 );
             }
@@ -266,15 +292,32 @@ method render {
           unless $self->render_invocant eq $var_invocant->render;
 
         my @apply_cases = (
-            [sprintf('ref(%s) eq q(CODE)',        $var_invocant->render), 'render_code_application'],
-            [sprintf('ref(%s) eq q(ARRAY)',       $var_invocant->render), 'render_list_application'],
-            [sprintf('ref(%s) eq q(HASH)',        $var_invocant->render), 'render_hash_application'],
-            [sprintf('Scalar::Util::blessed(%s)', $var_invocant->render), 'render_object_application'],
-            [sprintf(
-                'defined(%s) and not ref(%s)',  
+            [ sprintf('ref(%s) eq q(CODE)',        
                 $var_invocant->render,
+              ), 
+              'render_code_application',
+            ],
+            [ sprintf('ref(%s) eq q(ARRAY)',       
                 $var_invocant->render,
-            ), 'render_string_application'],
+              ), 
+              'render_list_application',
+            ],
+            [ sprintf('ref(%s) eq q(HASH)',        
+                $var_invocant->render,
+              ), 
+              'render_hash_application',
+            ],
+            [ sprintf('(Scalar::Util::blessed(%s) and not(%s->isa(q(Script::SXC::Runtime::Object))))', 
+                ($var_invocant->render) x 2,
+              ), 
+              'render_object_application',
+            ],
+            [ sprintf(
+                'defined(%s) and not ref(%s) and %s =~ /^\D/',  
+                ($var_invocant->render) x 3,
+              ), 
+            'render_string_application',
+            ],
         );
 
         $body .= sprintf 'if %s else { require %s; %s->throw(%s) }',

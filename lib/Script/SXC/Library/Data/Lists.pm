@@ -14,7 +14,9 @@ use Script::SXC::lazyload
     'Script::SXC::Exception::ParseError',
     [qw( Script::SXC::Compiled::Value               CompiledValue )],
     [qw( Script::SXC::Compiled::TypeCheck           CompiledTypeCheck )],
+    [qw( Script::SXC::Compiled::TypeSwitch          CompiledTypeSwitch )],
     [qw( Script::SXC::Compiled::Application::List   CompiledListApplication )],
+    [qw( Script::SXC::Compiled::Iteration           CompiledIteration )],
     [qw( Script::SXC::Compiled::Application         CompiledApplication )];
 
 use constant BuiltinClass   => 'Script::SXC::Tree::Builtin';
@@ -68,6 +70,63 @@ method build_inline_list_application (Str $keyword!, ArrayRef :$required_package
     }
 }
 
+CLASS->add_procedure('range',
+    firstclass  => CLASS->build_direct_firstclass('Script::SXC::Runtime', 'range', min => 1, max => 4),
+    inline_fc   => 1,
+    inliner     => CLASS->build_direct_inliner('Script::SXC::Runtime', 'range', min => 1, max => 4, typehint => 'list'),
+);
+
+CLASS->add_procedure('for',
+    firstclass => sub ($ls, $appl) {
+        Script::SXC::Runtime::Validation->runtime_arg_count_assertion('for', [@_], min => 2, max => 2);
+        Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'for expects list as first argument');
+        my $last;
+        my $iterator = Script::SXC::Runtime::make_iterator($ls);
+        until ($iterator->is_end($iterator->next_step)) {
+            $last = $iterator->apply_current($appl);
+        }
+        return $last;
+    },
+    inline_fc => 1,
+    runtime_req => ['Validation', '+Script::SXC::Runtime'],
+    inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
+        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);
+        my ($ls, $apply) = @$exprs;
+        my $last_var = Variable->new_anonymous('last_value');
+        my $curr_var = Variable->new_anonymous('current_value');
+        return CompiledIteration->new(
+            compiled_source => $ls->compile($compiler, $env),
+            source_item     => $symbol,
+            compile_body    => method (Object $iterator_var) {
+                return sprintf(
+                    '(do { my %s; until(%s->is_end(my %s = %s->next_step)) { %s = %s } %s })',
+                    $last_var->render,
+                    $iterator_var->render,
+                    $curr_var->render,
+                    $iterator_var->render,
+                    $last_var->render,
+                    CompiledApplication->new_from_uncompiled(
+                        $compiler,
+                        $env,
+                        invocant                => $apply,
+                        arguments               => [$curr_var],
+                        return_type             => 'scalar',
+                        inline_invocant         => 1,
+                        inline_firstclass_args  => 0,
+                        options => {
+                            optimize_tailcalls  => 0,
+                            first_class         => $compiler->force_firstclass_procedures,
+                            source              => $apply,
+                        },
+                        $apply->source_information,
+                    )->render,
+                    $last_var->render,
+                );
+            },
+        );
+    },
+);
+
 CLASS->add_procedure('list', 
     firstclass  => sub { [@_] },
     inline_fc   => 1,
@@ -84,48 +143,118 @@ CLASS->add_procedure('head',
         Script::SXC::Runtime::Validation->runtime_arg_count_assertion('head', [@_], min => 1, max => 2);
         Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'head expects list as first argument');
         $num-- if defined $num;
+        if (Scalar::Util::blessed($ls) and $ls->isa('Script::SXC::Runtime::Range')) {
+            my $iterator = $ls->to_iterator;
+            if (defined $num) {
+                my @head;
+                my $count = 0;
+                until ($iterator->is_end($iterator->next_step)) {
+                    $count++;
+                    push @head, $iterator->current_value;
+                    last if $count >= $num;
+                }
+                return \@head;
+            }
+            else {
+                $iterator->is_end(my $value = $iterator->next_step)
+                    and return undef;
+                return $value;
+            }
+        }
         return defined $num 
             ? [ @$ls[0 .. List::Util::min($num, $#$ls)] ]
             : ( @$ls ? $ls->[0] : undef );
     },
     inline_fc   => 1,
-    runtime_req => ['Validation', '+List::Util'],
+    runtime_req => ['Validation', '+List::Util', '+Scalar::Util'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 2);
         my ($ls, $num) = @$exprs;
 
         if (@$exprs == 1) {
-            return CompiledValue->new(content => sprintf(
-                '( (%s)->[0] )',
-                CompiledTypeCheck->new(
+            return CompiledTypeSwitch->new(
+                source_item => $ls,
+                expression  => CompiledTypeCheck->new(
                     expression  => $ls->compile($compiler, $env),
                     type        => 'list',
                     source_item => $ls,
                     message     => 'first argument to head must be a list',
-                )->render,
-            ));
+                ),
+                typemap     => {
+                    range       => do {
+                        my $iterator_var = Variable->new_anonymous('iterator');
+                        my $value_var    = Variable->new_anonymous('head_value');
+                        sprintf(
+                            '(do { my %s = (%s)->to_iterator; my %s = %s->next_step; %s->is_end(%s) ? undef : %s })',
+                            $iterator_var->render,
+                            '%s',
+                            $value_var->render,
+                            $iterator_var->render,
+                            $iterator_var->render,
+                            $value_var->render,
+                            $value_var->render,
+                        )
+                    },
+                    list => '( (%s)->[0] )',
+                },
+            );
         }
         else {
-            my $ls_var  = Variable->new_anonymous('head_list');
-            my $num_var = Variable->new_anonymous('head_num');
-
-            return CompiledValue->new(content => sprintf(
-                'do { my %s = %s; my %s = %s; [ @{( %s )}[0 .. (@{%s} > %s ? %s : scalar(@{%s})) - 1] ] }',
-                $ls_var->render,
-                CompiledTypeCheck->new(
+            return CompiledValue->new(typehint => 'list', content => CompiledTypeSwitch->new(
+                source_item => $ls,
+                expression  => CompiledTypeCheck->new(
                     expression  => $ls->compile($compiler, $env),
                     type        => 'list',
                     source_item => $ls,
                     message     => 'first argument to head must be a list',
-                )->render,
-                $num_var->render,
-                $num->compile($compiler, $env)->render,
-                $ls_var->render,
-                $ls_var->render,
-                $num_var->render,
-                $num_var->render,
-                $ls_var->render,
-            ), typehint => 'list');
+                ),
+                typemap     => {
+                    range       => do {
+                        my $iterator_var = Variable->new_anonymous('iterator');
+                        my $values_var   = Variable->new_anonymous('head_values', sigil => '@');
+                        my $value_var    = Variable->new_anonymous('head_value');
+                        my $count_var    = Variable->new_anonymous('head_count');
+                        my $num_var      = Variable->new_anonymous('head_num');
+                        sprintf(
+                '(do { my %s = (%s)->to_iterator; my %s = 0; my %s = %s; my %s; until (%s) { last if %s >= %s; push %s, %s; %s++ }; [%s] })',
+                            $iterator_var->render,
+                            '%s',
+                            $count_var->render,
+                            $num_var->render,
+                            $num->compile($compiler, $env)->render,
+                            $values_var->render,
+                            sprintf(
+                                '%s->is_end(my %s = %s->next_step)',
+                                $iterator_var->render,
+                                $value_var->render,
+                                $iterator_var->render,
+                            ),
+                            $count_var->render,
+                            $num_var->render,
+                            $values_var->render,
+                            $value_var->render,
+                            $count_var->render,
+                            $values_var->render,
+                        );
+                    },
+                    list => do {
+                        my $ls_var  = Variable->new_anonymous('head_list');
+                        my $num_var = Variable->new_anonymous('head_num');
+                        sprintf(
+                            'do { my %s = %s; my %s = %s; [ @{( %s )}[0 .. (@{%s} > %s ? %s : scalar(@{%s})) - 1] ] }',
+                            $ls_var->render,
+                            '%s',
+                            $num_var->render,
+                            $num->compile($compiler, $env)->render,
+                            $ls_var->render,
+                            $ls_var->render,
+                            $num_var->render,
+                            $num_var->render,
+                            $ls_var->render,
+                        );
+                    }
+                },
+            )->render);
         }
     },
 );
@@ -134,18 +263,78 @@ CLASS->add_procedure('tail',
     firstclass => sub ($ls, $num) {
         Script::SXC::Runtime::Validation->runtime_arg_count_assertion('tail', [@_], min => 1, max => 2);
         Script::SXC::Runtime::Validation->runtime_type_assertion($ls, 'list', 'tail expects list as first argument');
+        if (Scalar::Util::blessed $ls) {
+            if ($ls->isa('Script::SXC::Runtime::Range')) {
+                if (defined $num) {
+                    $ls = [@$ls];
+                    return [ 
+                        @$ls[ (@$ls - List::Util::min(scalar(@$ls), $num)) .. $#$ls ] 
+                    ];
+                }
+                else {
+                    my $iterator = $ls->to_iterator;
+                    $iterator->clear;
+                    $iterator->next_step for 1..2;
+                    return $iterator->range_from_here;
+                }
+            }
+            else {
+                die "Invalid iterator object";
+            }
+        }
         $num = $#$ls unless defined $num;
         return [ @$ls[ (@$ls - List::Util::min(scalar(@$ls), $num)) .. $#$ls ] ];
     },
     inline_fc   => 1,
-    runtime_req => ['Validation', '+List::Util'],
+    runtime_req => ['Validation', '+List::Util', '+Scalar::Util'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1, max => 2);
         my ($ls, $num) = @$exprs;
 
-        my $ls_var    = Variable->new_anonymous('head_list');
-        my $num_var   = Variable->new_anonymous('head_num');
-        my $start_var = Variable->new_anonymous('head_start_at');
+        my $ls_var    = Variable->new_anonymous('tail_list');
+        my $num_var   = Variable->new_anonymous('tail_num');
+        my $start_var = Variable->new_anonymous('tail_start_at');
+
+        my $to_list_with_num = sprintf(
+            'do { my %s = %s; my %s = %s; my %s = %s; [ %s ] }',
+            $ls_var->render,
+            '%s',
+            $num_var->render,
+            ( $num ? $num->compile($compiler, $env)->render : '0' ),
+            $start_var->render,
+            sprintf(
+                '( $#{ %s } - (%s - 1) )',
+                $ls_var->render,
+              ( $num ? $num_var->render : sprintf('$#{ %s }', $ls_var->render) ),
+            ),
+            sprintf(
+                '@{ %s }[ (%s < 0 ? 0 : %s) .. $#{ %s } ]',
+                $ls_var->render,
+                $start_var->render,
+                $start_var->render,
+                $ls_var->render,
+            ),
+        );
+
+        return CompiledTypeSwitch->new(
+            expression  => $ls->compile($compiler, $env),
+            source_item => $ls,
+            typemap     => {
+                range => do {
+                    my $iterator_var = Variable->new_anonymous('iterator');
+                    defined($num)
+                    ? $to_list_with_num
+                    : sprintf(
+                        '(do { my %s = (%s)->to_iterator; %s->clear; %s->next_step for 1..2; %s->range_from_here })',
+                        $iterator_var->render,
+                        '%s',
+                        ($iterator_var->render) x 3,
+                      );
+                },
+                list => $to_list_with_num,
+            },
+        );
+
 
         return CompiledValue->new(content => sprintf(
             'do { my %s = %s; my %s = %s; my %s = %s; [ %s ] }',
@@ -298,12 +487,12 @@ CLASS->add_procedure('append',
 CLASS->add_procedure('list?',
     firstclass => sub {
         Script::SXC::Runtime::Validation->runtime_arg_count_assertion('list?', [@_], min => 1);
-        (ref($_) and ref($_) eq 'ARRAY') or return undef
+        (ref($_) and ref($_) eq 'ARRAY') or (Scalar::Util::blessed($_) and $_->isa('Script::SXC::Runtime::Range')) or return undef
             for @_;
         return 1;
     },
     inline_fc   => 1,
-    runtime_req => ['Validation'],
+    runtime_req => ['Validation', '+Scalar::Util'],
     inliner => method (:$compiler!, :$env!, :$exprs!, :$name!, :$error_cb!, :$symbol!) {
         CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
         my $anon = Variable->new_anonymous('list_p_arg');
@@ -312,11 +501,15 @@ CLASS->add_procedure('list?',
             join(
                 ' and ',
                 map {
-                    sprintf 'do { my %s = %s; (ref(%s) and ref(%s) eq q(ARRAY)) }',
+                    sprintf 'do { my %s = %s; (ref(%s) and ref(%s) eq q(ARRAY)) or (%s(%s) and %s->isa("%s")) }',
                         $anon->render,
                         $_->compile($compiler, $env)->render,
                         $anon->render,
                         $anon->render,
+                        'Scalar::Util::blessed',
+                        $anon->render,
+                        $anon->render,
+                        'Script::SXC::Runtime::Range',
                 } @$exprs,
             ),
         ), typehint => 'bool');
