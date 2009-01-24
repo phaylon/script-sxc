@@ -211,6 +211,7 @@ method run {
             }
 
             # normal error
+            warn "\n# compiled result:\n$body\n";
             warn "An error occured during $stage:\n\t$e\n";
             do { chomp(my $l = $line); $self->add_to_history($l) };
             #$self->print_info($body, no_prefix => 1, filter => sub { "# $_" });

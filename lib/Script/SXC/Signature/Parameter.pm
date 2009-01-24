@@ -2,16 +2,20 @@ package Script::SXC::Signature::Parameter;
 use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
-use MooseX::Types::Moose qw( Bool Str Object );
+use MooseX::Types::Moose qw( Bool Str Object Int );
 
 use Perl6::Junction qw( any );
 use Perl6::Gather;
 
 use Script::SXC::lazyload
     'Script::SXC::Exception::ParseError',
+    ['Script::SXC::Compiled::Value',             'CompiledValue'],
     ['Script::SXC::Compiled::Validation::Where', 'WhereClause'];
 
+use Data::Dump qw( pp );
+
 use constant VariableClass => 'Script::SXC::Compiler::Environment::Variable';
+use constant ArgumentError => 'Script::SXC::Exception::ArgumentError';
 
 use namespace::clean -except => 'meta';
 
@@ -28,7 +32,7 @@ has symbol => (
     isa         => Object,
     required    => 1,
     handles     => {
-        'name'      => 'value',
+        'name'          => 'value',
     },
 );
 
@@ -42,31 +46,99 @@ has is_named => (
     isa         => Bool,
 );
 
-method compile_validations (Object $compiler!, Object $env!, Bool :$rest_container?) {
+has position => (
+    is          => 'rw',
+    isa         => Int,
+    required    => 1
+);
+
+method is_required () { not $self->is_optional }
+
+method compile_validations (Object $compiler!, Object $env!, Bool :$rest_container?, Object|Undef :$named_var?) {
     my @validations;
 
-    #warn "PARAM " . $self->name . "\n";
+    my $optional_check = sprintf 'defined(%s)', $self->symbol->compile($compiler, $env)->render;
+    my $value          = $self->symbol;
 
-    if ($self->where_clause) {
-        #warn "WHERE\n";
-        push @validations, WhereClause->new(
-            expression  => $self->compile_where_clause($compiler, $env),
-            symbol      => $self->symbol,
+    # check named arguments
+    if ($self->is_named) {
+        die "We should have a named argument variable at this point"
+            unless $named_var;
+
+        # render access to value in named arg hash
+        my $access = sprintf '%s->{ %s }', $named_var->render, pp($self->name);
+        
+        # named arguments need different behaviours
+        $optional_check = sprintf 'exists(%s)', $access;
+        $value          = CompiledValue->new(content => $access);
+
+        # update variable
+        if ($rest_container) {
+
+            push @validations, CompiledValue->new(content => sprintf
+                '%s = ( +{( %%{( %s )} )} )',
+                $self->symbol->compile($compiler, $env)->render,
+                $named_var->render,
+            );
+        }
+        else {
+
+            $compiler->add_required_package(ArgumentError);
+
+            # check for existance
+            push @validations, CompiledValue->new(content => sprintf
+                '%s->throw_to_caller(%s) unless exists(%s)',
+                ArgumentError,
+                pp(type => 'missing_argument', message => sprintf('Missing named argument: %s', $self->name)),
+                $access,
+            );
+
+            push @validations, CompiledValue->new(content => sprintf 
+                '%s = delete(%s)', 
+                $self->symbol->compile($compiler, $env)->render,
+                $access,
+            );
+        }
+    }
+    elsif ($rest_container) {
+        push @validations, CompiledValue->new(content => sprintf
+            '%s = [( @_[ %s .. $#_ ] )]',
+            $self->symbol->compile($compiler, $env)->render,
+            $self->position,
         );
     }
 
-    #use Data::Dump qw(dump); warn dump \@validations;
-    return \@validations;
+    # compile possible where clause
+    if ($self->where_clause) {
+        push @validations, WhereClause->new(
+            expression  => $self->compile_where_clause($compiler, $env),
+            symbol      => $value,
+        );
+    }
+
+    # validations for optinoal parameters will be wrapped
+    if ($self->is_optional) {
+        return [ CompiledValue->new(content => sprintf
+            '(do { if (%s) { %s } })',
+            $optional_check,
+            join '; ', map { $_->render } @validations,
+        ) ];
+    }
+
+    # required parameter must meet the constraints
+    else {
+        return \@validations;
+    }
 }
 
-method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!, Bool :$is_named, Bool :$is_optional) {
+method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!, Bool :$is_named, Bool :$is_optional, Int :$position!) {
     my %flags = (is_named => $is_named, is_optional => $is_optional);
 
     # we have been given just a symbol
     if ($item->isa('Script::SXC::Tree::Symbol') or $item->isa(VariableClass)) {
 
         # we just have the name
-        return $class->new(symbol => $item, %flags);
+        return $class->new(symbol => $item, position => $position, %flags);
     }
 
     # it must be a list if it's not a symbol
@@ -105,7 +177,7 @@ method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!, Bo
     }
 
     # finished parameter
-    return $class->new(%flags, %attrs);
+    return $class->new(%flags, position => $position, %attrs);
 }
 
 method prepare_where_clause_expression (Str $class: Object $key!, ArrayRef $args!, Object $compiler!, Object $env!, Object :$symbol!) {
