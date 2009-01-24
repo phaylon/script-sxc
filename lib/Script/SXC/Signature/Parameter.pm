@@ -72,7 +72,7 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
         $optional_check = sprintf 'exists(%s)', $access;
         $value          = CompiledValue->new(content => $access);
 
-        # update variable
+        # update rest variable
         if ($rest_container) {
 
             push @validations, CompiledValue->new(content => sprintf
@@ -81,6 +81,8 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
                 $named_var->render,
             );
         }
+
+        # update normal variable
         else {
 
             $compiler->add_required_package(ArgumentError);
@@ -93,6 +95,7 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
                 $access,
             );
 
+            # remove argument from named arg hashref
             push @validations, CompiledValue->new(content => sprintf 
                 '%s = delete(%s)', 
                 $self->symbol->compile($compiler, $env)->render,
@@ -100,6 +103,8 @@ method compile_validations (Object $compiler!, Object $env!, Bool :$rest_contain
             );
         }
     }
+
+    # rest but not named
     elsif ($rest_container) {
         push @validations, CompiledValue->new(content => sprintf
             '%s = [( @_[ %s .. $#_ ] )]',

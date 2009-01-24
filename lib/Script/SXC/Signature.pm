@@ -68,7 +68,6 @@ method compile_validations (Object $compiler!, Object $env!) {
 
     # calculate argument count boundaries
     my $min = (grep { $_->is_required } @{ $self->fixed_parameters }) + (2 * grep { $_->is_required } @{ $self->named_parameters });
-#    my $min = grep { $_->is_required } @{ $self->fixed_parameters };
     my $max = $self->rest_parameter ? undef : $self->fixed_parameter_count + ($self->named_parameter_count * 2);
 
     # maximum argument count
@@ -101,6 +100,8 @@ method compile_validations (Object $compiler!, Object $env!) {
             @{ $self->rest_parameter->compile_validations($compiler, $env, named_var => $named_var, rest_container => 1) };
     }
     else {
+
+        # named parameters check for unknown keys
         if ($named_var) {
             $compiler->add_required_package(ArgumentError);
             push @validations, CompiledValue->new(content => sprintf
@@ -117,18 +118,6 @@ method compile_validations (Object $compiler!, Object $env!) {
     }
 
     return \@validations;
-}
-
-method D___compile_validations (Object $compiler!, Object $env!) {
-    return [ 
-        ( $self->fixed_parameter_count ? CompiledArgCountCheck->new(min => $self->fixed_parameter_count) : () ),
-        ( $self->rest_parameter ? () : CompiledArgCountCheck->new(max => $self->fixed_parameter_count) ),
-        ( map { @{ $_->compile_validations($compiler, $env) } } @{ $self->fixed_parameters } ),
-        ( $self->rest_parameter
-          ? @{ $self->rest_parameter->compile_validations($compiler, $env, rest_container => 1) }
-          : () 
-        ),
-    ];
 }
 
 method as_definition_map {
@@ -153,7 +142,6 @@ method as_definition_map {
         ( $self->rest_parameter ? [
             $self->rest_parameter_symbol, 
             CompiledValue->new(content => 'undef'),
-#            CompiledValue->new(content => sprintf('[@_[%d .. $#_]]', $arg_index)),
         ] : () ),
     ];
 };
