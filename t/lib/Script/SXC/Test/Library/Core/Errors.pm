@@ -23,7 +23,7 @@ sub T950_errors: Tests {
 #        my $apply  = self->run('apply');
 #        eval { $caller->($apply) };
 #        exit 7;
-        local $TODO = 'report correct line number';
+#        local $TODO = 'report correct line number';
         throws_ok { $self->run("((lambda (f)\n(let ((x 23)\n(y 42))\n(f list x y)))\napply)") }
             'Script::SXC::Exception::ArgumentError', 
             'first class apply with wrong arguments throws argument error';
