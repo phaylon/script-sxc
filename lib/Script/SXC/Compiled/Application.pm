@@ -3,7 +3,7 @@ use 5.010;
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::Method::Signatures;
-use MooseX::Types::Moose qw( Object ArrayRef Str Bool );
+use MooseX::Types::Moose qw( Object ArrayRef Str Bool Int );
 
 use Data::Dump qw( pp );
 
@@ -23,6 +23,9 @@ use namespace::clean -except => 'meta';
 
 with 'Script::SXC::TypeHinting';
 with 'Script::SXC::SourcePosition';
+
+has '+source_description' => (required => 1, isa => Str);
+has '+line_number'        => (required => 1, isa => Int);
 
 has invocant => (
     is          => 'rw',
@@ -61,21 +64,26 @@ method _wrap_return (Str $body!) {
 }
 
 method render_code_application (Object $invocant!, Str $args!) {
-    return sprintf 'do { my %s = %s; (%s)->(%s) }',
-        $AppMarker,
-        pp(+{ $self->source_information }),
+    return sprintf '(%sdo { %s(%s)->%s(%s) })',
+#        $AppMarker,
+#        pp(+{ $self->source_information }),
+        $self->_render_source_position,
+        $self->_render_source_position,
         $invocant->render, 
+        $self->_render_source_position,
         $args;
 }
 
 method render_hash_application (Object $invocant!, Str $args!) {
-    return sprintf '( (%s)->{ %s } )',
+    return sprintf '(do { %s(%s)->{ %s } })',
+        $self->_render_source_position,
         $invocant->render,
         $self->_render_single_value_check($args, 'hash');
 }
 
 method render_list_application (Object $invocant!, Str $args!) {
-    return sprintf '( (%s)->[%s] )',
+    return sprintf '(do { %s(%s)->[%s] })',
+        $self->_render_source_position,
         $invocant->render,
         $self->_render_single_value_check($args, 'list');
 }
@@ -84,12 +92,13 @@ method render_object_application (Object $invocant!, Str $args!, ArrayRef $raw_a
     my $method_var = Variable->new_anonymous('method');
     my $args_var   = Variable->new_anonymous('method_args', sigil => '@');
     my ($method, @args) = @$raw_args;
-    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s; %s->%s(%s) })',
+    return sprintf '(do { my %s = (%s); my %s = q() . shift(%s); %s; %s%s->%s(%s) })',
         $args_var->render,
         $args,
         $method_var->render,
         $args_var->render,
         $self->_render_method_check($invocant, $method_var, 1),
+        $self->_render_source_position,
         $invocant->render,
         $method_var->render,
         $args_var->render;
@@ -99,7 +108,7 @@ method render_string_application (Object $invocant!, Str $args!, ArrayRef $raw_a
     my $method_var = Variable->new_anonymous('classmethod');
     my $args_var   = Variable->new_anonymous('classmethod_args', sigil => '@');
     my ($method, @args) = @$raw_args;
-    return sprintf '(do { %s; my %s = (%s); my %s = q() . shift(%s); %s; %s->%s(%s) })',
+    return sprintf '(do { %s; my %s = (%s); my %s = q() . shift(%s); %s; %s%s->%s(%s) })',
         sprintf(
             'unless (%s =~ /^\D/) { require %s; %s->throw(%s, %s) }',
             $invocant->render,
@@ -115,6 +124,7 @@ method render_string_application (Object $invocant!, Str $args!, ArrayRef $raw_a
         $method_var->render,
         $args_var->render,
         $self->_render_method_check($invocant, $method_var, 0),
+        $self->_render_source_position,
         $invocant->render,
         $method_var->render,
         $args_var->render;
@@ -148,6 +158,13 @@ method _render_single_value_check (Str $args!, Str $type!) {
         ),
         $var->render,
         $var->render;
+}
+
+method _render_source_position {
+#    return '';
+    return sprintf "\n" . '#line %d "%s"' . "\n",
+        $self->line_number,
+        $self->source_description;
 }
 
 method tailcall_alternative { CompiledGoto }
@@ -282,7 +299,8 @@ method render {
         my $var_result = Variable->new_anonymous('apply_result');
 
         # application is surrounded by scoping block
-        my $body = sprintf 'do { my %s; ',
+        my $body = sprintf '%sdo { my %s; ',
+            $self->_render_source_position,
             $var_result->render;
 
         # append invocant var definition if needed
@@ -324,8 +342,9 @@ method render {
             join(' elsif ',
                 map {
                     my $method = $_->[1];
-                    sprintf '(%s) { %s = %s }', 
-                        $_->[0], 
+                    sprintf '(%s) { %s%s = %s }', 
+                        $_->[0],
+                        $self->_render_source_position,
                         $var_result->render,
                         $self->_wrap_return($self->$method($var_invocant, $args, \@raw_args));
                 } @apply_cases

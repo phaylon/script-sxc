@@ -12,6 +12,24 @@ sub T100_simple: Tests {
     is_deeply self->run('(apply list 1 2 3 (list 4 5))'), [1 .. 5], 'apply with items and list as arguments returns proper result';
 }
 
+my $SP_Test;
+{   
+    package Script::SXC::Test::SourcePosition;
+    sub new    { bless +{} }
+    sub report { [ (caller)[1, 2] ] }
+    $SP_Test = __PACKAGE__;
+}
+
+sub T050_source_positions: Tests {
+    return self->builder->skip("doesn't make sense to test error reporting with active tailcall optimisations")
+        if $ENV{TEST_TAILCALLOPT};
+
+    my $apply = self->run('(λ (f) (f))');
+
+    is_deeply $apply->($SP_Test->can('report')), ['(scalar)', 1], 'code application sets correct line number';
+
+}
+
 sub T666_errors: Tests {
     my $self = self;
 

@@ -158,6 +158,8 @@ method _is_named_indicator ($class: $item) {
     $item->isa('Script::SXC::Tree::Keyword') and $item->value eq 'named';
 }
 
+method init_parameters { () }
+
 method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
 
     # grab-all when symbol is given
@@ -172,10 +174,21 @@ method new_from_tree ($class: Object $item!, Object $compiler!, Object $env!) {
     # grab the lists contents
     my @sig_parts = @{ $item->contents };
 
-    # walk the items and collect parameters
+    # initialise parameter stash
     my (@fixed_params, @named_params, $rest, $is_optional, $is_named);
-    my $target_list = \@fixed_params;
     my $position    = -1;
+    my $target_list = \@fixed_params;
+    $class->init_parameters(
+        fixed_parameters    => \@fixed_params,
+        named_parameters    => \@named_params,
+        rest_parameter      => \$rest,
+        is_optional         => \$is_optional,
+        is_named            => \$is_named,
+        position            => \$position,
+        target_list         => \$target_list,
+    );
+
+    # walk the items and collect parameters
   SIGPART:
     while (my $sig_part = shift @sig_parts) {
 

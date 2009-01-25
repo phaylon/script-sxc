@@ -93,7 +93,7 @@ method build_firstclass_equality_operator (Str $operator!, CodeRef $test!) {
 }
 
 method build_direct_inliner ($lib: Str $package!, Str $name!, Int :$min?, Int :$max?, Str :$typehint?) {
-    return method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
+    return method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!, :$symbol!) {
         $lib->check_arg_count(
             $error_cb, $name, $exprs,
             ( $min ? (min => $min) : () ),
@@ -101,7 +101,12 @@ method build_direct_inliner ($lib: Str $package!, Str $name!, Int :$min?, Int :$
         ) if defined $min or defined $max;
         $compiler->add_required_package($package);
         return CompiledValue->new(($typehint ? (typehint => $typehint) : ()), content => sprintf
-            'scalar(%s::%s(%s))',
+            '(do { %sscalar(%s::%s(%s)) })',
+            sprintf(
+                qq{\n#line %d "%s"\n},
+                $symbol->line_number,
+                $symbol->source_description,
+            ),
             $package,
             $name,
             join ', ', map { $_->compile($compiler, $env)->render } @$exprs,

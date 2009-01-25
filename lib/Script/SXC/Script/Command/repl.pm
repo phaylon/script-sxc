@@ -9,7 +9,7 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::AttributeHelpers;
 use MooseX::CurriedHandles;
-use MooseX::Types::Moose qw( Object Str ArrayRef Int );
+use MooseX::Types::Moose qw( Object Str ArrayRef Int Bool );
 
 use CLASS;
 use Term::ReadLine;
@@ -99,6 +99,18 @@ has history_file => (
     documentation   => 'complete path to history file',
 );
 
+has pretty => (
+    is              => 'rw',
+    isa             => Bool,
+    documentation   => 'pretty print compiled output',
+);
+
+has add_line_numbers => (
+    is              => 'rw',
+    isa             => Bool,
+    documentation   => 'add line numbers to compiled output',
+);
+
 method _build_default_terminal {
     my $class = ref($self) || $self;
     my $term = Term::ReadLine->new($class);
@@ -153,6 +165,7 @@ method run {
 
         my $body;   # body to print out
         my $stage;  # stage where an error might have occurred
+        my $real_body;
 
         # try to get a result
         my $result = eval {
@@ -174,13 +187,14 @@ method run {
             my $compiled = $self->compile_tree($tree);
             $compiled->pre_text($pre_text);                         # add lexical defintions
             $body        = $compiled->get_full_body;
+            $real_body   = $body;
 
             # tidy up the body. the local sanitizes perltidy
             local @ARGV;
             perltidy(
                 source      => \$body,
                 destination => \$body,
-            );
+            ) if $self->pretty;
 
             # remember all existing variables
             $lex{ $_->render }++
@@ -199,6 +213,13 @@ method run {
             $stage       = 'execution';
             $lex->call($callback);
         };
+
+        $body = do {
+            my @lines  = split /\n/, $body;
+            my $maxlen = length scalar @lines;
+            my $ln     = 1;
+            join "\n", map { sprintf(sprintf('%%%ds: %%s', $maxlen), $ln++, $_) } @lines;
+        } if $self->add_line_numbers;
 
         # an error occured, warn and move on
         if (my $e = $@) {
@@ -224,7 +245,7 @@ method run {
         do { chomp(my $l = $line); $self->add_to_history($l) };
 
         # print body and result
-        $self->print_info($body, no_prefix => 1, filter => sub { "# $_" });
+        $self->print_info($body, no_prefix => 1, filter => sub { "$_" });
         $self->print_info(pp($result) . "\n", no_prefix => 1);
 
         # reset buffer

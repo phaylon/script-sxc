@@ -105,11 +105,16 @@ sub range {
 }
 
 sub apply {
+    for my $x (60 .. 10) {
+        no warnings;
+        say "$x: ", join ', ', (caller($x))[0..2];
+    }
 
     # we need at least two arguments
     ArgumentError->throw_to_caller(
         type    => 'missing_arguments',
-        message => 'Missing arguments: apply expects at least 2 arguments'
+        message => 'Missing arguments: apply expects at least 2 arguments',
+        up      => 1,
     ) unless @_ >= 2;
 
     # split up the arguments
@@ -118,7 +123,8 @@ sub apply {
     # last argument must be list
     ArgumentError->throw_to_caller(
         type    => 'invalid_argument_type',
-        message => 'Invalid argument type: Last argument to apply must be a list'
+        message => 'Invalid argument type: Last argument to apply must be a list',
+        up      => 1,
     ) unless (ref $args[-1] eq 'ARRAY') 
           or (blessed($args[-1]) and $args[-1]->isa(RuntimeRangeClass));
 
@@ -138,6 +144,7 @@ sub apply {
     # dispatch based on type
     given (ref $invocant) {
         when ('CODE') {
+#            return $invocant->(@args);
             goto $invocant;
         }
         when ('ARRAY') {
@@ -169,6 +176,7 @@ sub apply {
                     type    => 'missing_method',
                     message => "Unable to call method '$method_name' on class $invocant",
                 );
+                #return $invocant->$method(@args);
                 unshift @_, $invocant;
                 goto $method;
             }
@@ -182,6 +190,7 @@ sub apply {
                     type    => 'missing_method',
                     message => "Unable to call method '$method_name' on class " . ref($invocant),
                 );
+                #return $invocant->$method(@args);
                 unshift @_, $invocant;
                 goto $method;
             }

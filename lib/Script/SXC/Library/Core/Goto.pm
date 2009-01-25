@@ -23,7 +23,7 @@ extends 'Script::SXC::Library';
 
 =cut
 
-CLASS->add_inliner('goto', via => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!) {
+CLASS->add_inliner('goto', via => method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!, :$symbol!) {
     CLASS->check_arg_count($error_cb, $name, $exprs, min => 1);
 
     # we need at least a target, plus an optional number of arguments
@@ -33,6 +33,7 @@ CLASS->add_inliner('goto', via => method (Object :$compiler!, Object :$env!, Arr
     return CompiledGoto->new(
         invocant  => $target->compile($compiler, $env),
         arguments => [map { $_->compile($compiler, $env) } @args],
+        $symbol->source_information,
     );
 });
 

@@ -1,4 +1,5 @@
 package Script::SXC::Exception;
+use 5.010;
 use Moose;
 
 use Script::SXC::Types qw( Str Int );
@@ -31,22 +32,27 @@ method build_default_message { undef }
 
 method throw_to_caller ($class: :$message!, :$type!, :$up?, :$line_number, :$source_description) {
 
-    my $vars = peek_my(defined($up) ? $up : 2);
+#    my $vars = peek_my(defined($up) ? $up : 2);
 #    warn dump $vars;
-    if (exists $vars->{'$___SXC_CALLER_INFO___'}) {
-        my $cinfo = ${ $vars->{'$___SXC_CALLER_INFO___'} };
-        return $class->throw(
-            type    => $type,
-            message => $message,
-            %$cinfo,
-        );
-    }
+#    if (exists $vars->{'$___SXC_CALLER_INFO___'}) {
+#        my $cinfo = ${ $vars->{'$___SXC_CALLER_INFO___'} };
+#        return $class->throw(
+#            type    => $type,
+#            message => $message,
+#            %$cinfo,
+#        );
+#    }
 
     my $c = defined($up) ? caller($up) : caller(2);
+    for my $x (60 .. 5) {
+        no warnings;
+        say "$x: ", join ', ', (caller($x))[0..2];
+    }
     return $class->throw(
         type                => $type,
         message             => $message,
-        source_description  => sprintf('(package %s, subroutine %s, file %s)', $c->package, $c->subroutine, $c->filename),
+        source_description  => $c->filename,
+#        source_description  => sprintf('(package %s, subroutine %s, file %s)', $c->package, $c->subroutine, $c->filename),
         line_number         => $c->line,
     );
 }
