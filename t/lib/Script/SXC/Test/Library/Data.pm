@@ -5,6 +5,5 @@ use CLASS;
 use Test::Most;
 use Data::Dump   qw( dump );
 use Scalar::Util qw( refaddr );
-use self;
 
 1;

@@ -7,6 +7,8 @@ use Data::Dump qw( pp );
 use Script::SXC::lazyload
     ['Script::SXC::Compiled::Value', 'CompiledValue'];
 
+use Scalar::Util qw( blessed );
+
 use namespace::clean -except => 'meta';
 
 with 'Script::SXC::Tree::Item';
@@ -24,9 +26,13 @@ method compile (Object $compiler, Object $env) {
 
     # build compiled value
     return CompiledValue->new(
-        content => pp($self->value),
+        content => ( blessed($self->value) ? $self->compile_object_value($compiler, $env, $self->value) : pp($self->value) ),
       ( $self->does('Script::SXC::TypeHinting') ? (typehint => $self->typehint) : () ),
     );
 };
+
+method compile_object_value (Object $object) {
+    return pp($object);
+}
 
 1;

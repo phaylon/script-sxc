@@ -1,7 +1,6 @@
 package Script::SXC::Test::Library::Core::Gotos;
 use strict;
 use parent 'Script::SXC::Test::Library::Core';
-use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
@@ -13,13 +12,13 @@ sub callstack_count {
 }
 
 sub T700_gotos: Tests {
-    my $self = self;
+    my $self = shift;
 
     # simple goto
-    is self->run('(let [(p (λ (n) n)) (m 42)] (goto p 23) m)'), 23, 'goto correctly jumps to target object with correct arguments';
+    is $self->run('(let [(p (λ (n) n)) (m 42)] (goto p 23) m)'), 23, 'goto correctly jumps to target object with correct arguments';
 
     # callstack
-    {   is ref(my $lambda = self->run('(lambda (t p) (and (t) (goto p t p)))')), 'CODE', 'goto parses';
+    {   is ref(my $lambda = $self->run('(lambda (t p) (and (t) (goto p t p)))')), 'CODE', 'goto parses';
         my ($old, $x);
         $x = 0;
         $lambda->(sub { 
@@ -32,7 +31,7 @@ sub T700_gotos: Tests {
     }
 
     # tail-call-opts
-    {   is ref(my $lambda = self->run('(define foo (lambda (t) (if (t) (foo t) ()))) foo')), 'CODE', 'tailcall optimization test compiles';
+    {   is ref(my $lambda = $self->run('(define foo (lambda (t) (if (t) (foo t) ()))) foo')), 'CODE', 'tailcall optimization test compiles';
         my $old;
         my $x = 0;
         is_deeply $lambda->(sub {

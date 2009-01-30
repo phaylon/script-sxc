@@ -1,18 +1,22 @@
 package Script::SXC::Token::Number;
 use Moose;
+use Moose::Util::TypeConstraints;
+use MooseX::Method::Signatures;
 
-use Script::SXC::Types qw( Num );
+use Script::SXC::Types qw( Num Object );
+
+use Math::BigRat;
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
 with 'Script::SXC::Token::MatchByRegex';
 with 'Script::SXC::Token::DirectTransform';
 with 'Script::SXC::Token';
 
-has '+value' => (isa => Num);
+has '+value' => (isa => Num | Object );
 
-method match_regex () { 
+method match_regex { 
+#sub match_regex {
     qr/
         [+-]?                   # signedness
         (?:                     # octal
@@ -42,6 +46,12 @@ method match_regex () {
               |                 # 0xF
                 [\da-f]+
             )
+          |                     # rationals
+            (?:
+                \d+
+                \/
+                \d+
+            )
           |                     # integer and float
             (?:                 # 24_800.30
                 [1-9][_\d]+\d
@@ -55,6 +65,8 @@ method match_regex () {
     /xi
 };
 
+#sub build_tokens {
+#    my ($self, $value) = @_;
 method build_tokens ($value) {
     my $class = ref($self) || $self;
 
@@ -80,6 +92,11 @@ method build_tokens ($value) {
         $value = oct $1;
     }
 
+    # rational value
+    elsif ($value =~ /\//) {
+        $value = Math::BigRat->new($value);
+    }
+
     # move value into negative if it was signed negative
     $value = 0 - $value
         if $substract;
@@ -88,7 +105,8 @@ method build_tokens ($value) {
     return $class->new(value => 0+$value);
 };
 
-method tree_item_class () { 'Script::SXC::Tree::Number' };
+method tree_item_class () { 'Script::SXC::Tree::Number' }
+#sub tree_item_class { 'Script::SXC::Tree::Number' };
 
 __PACKAGE__->meta->make_immutable;
 

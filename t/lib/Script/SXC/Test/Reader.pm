@@ -1,7 +1,6 @@
 package Script::SXC::Test::Reader;
 use strict;
 use parent 'Script::SXC::Test';
-use self;
 
 use CLASS;
 use Test::Most;
@@ -20,21 +19,24 @@ CLASS->mk_accessors(qw( reader ));
 }
 
 sub setup_reader: Test(startup) {
-    self->reader(ReaderClass->new);
+    my $self = shift;
+    $self->reader(ReaderClass->new);
 }
 
 sub basic: Tests {
-    isa_ok self->reader, ReaderClass;
+    my $self = shift;
+    isa_ok $self->reader, ReaderClass;
 }
 
-sub build_stream { self->reader->build_stream(\(args)) }
+sub build_stream { my ($self, $str) = @_; $self->reader->build_stream(\$str) }
 
-sub to_tokens { self->build_stream(args)->all }
+sub to_tokens { my ($self, $str) = @_; $self->build_stream($str)->all }
 
 sub string_sources: Tests {
+    my $self = shift;
 
     # build stream
-    explain 'stream object: ', dump my $stream = self->build_stream("(foo bar)\n(baz qux)");
+    explain 'stream object: ', dump my $stream = $self->build_stream("(foo bar)\n(baz qux)");
     isa_ok $stream, 'Script::SXC::Reader::Stream';
 
     # test source
@@ -66,16 +68,16 @@ sub string_sources: Tests {
 }
 
 sub symbol_tokens: Tests {
+    my $self = shift;
 
     explain 'symbol token: ', 
         dump assert_ok 'symbol parses',
-        my $symbol = self->to_tokens('foo');
+        my $symbol = $self->to_tokens('foo');
     isa_ok $symbol, 'Script::SXC::Token::Symbol';
     is $symbol->value, 'foo', 'correct symbol value';
     is $symbol->line_number, 1, 'correct line number';
     is $symbol->source_description, '(scalar)', 'correct source description';
 
-    my $self = self;
     throws_ok { $self->to_tokens('23foo') } 
         'Script::SXC::Exception::ParseError',
         'symbol that tries to start with number throws parse error';
@@ -86,11 +88,12 @@ sub symbol_tokens: Tests {
 }
 
 sub whitespace_tokens: Tests {
+    my $self = shift;
 
     {   # simple whitespace token
         explain 'simple whitespace token: ', 
             dump assert_ok 'simple whitespace parses',
-            my $ws = self->to_tokens('   ');
+            my $ws = $self->to_tokens('   ');
         isa_ok $ws, 'Script::SXC::Token::Whitespace';
         is $ws->value, '   ', 'correct whitespace value';
     }
@@ -98,13 +101,13 @@ sub whitespace_tokens: Tests {
     {   # tabular whitespace token
         explain 'tabular whitespace token: ', 
             dump assert_ok 'tabular whitespace token',
-            my $ws = self->to_tokens("\t\t");
+            my $ws = $self->to_tokens("\t\t");
         isa_ok $ws, 'Script::SXC::Token::Whitespace';
         is $ws->value, "\t\t", 'correct tabular whitespace value';
     }
     
     {   # newline and simple whitespaces
-        explain 'tabular whitespace token: ', dump my @ws = self->to_tokens(" \n \n");
+        explain 'tabular whitespace token: ', dump my @ws = $self->to_tokens(" \n \n");
         is scalar(@ws), 2, 'newlines give correct number of lines';
         isa_ok $_, 'Script::SXC::Token::Whitespace' 
             for @ws;
@@ -114,68 +117,83 @@ sub whitespace_tokens: Tests {
 }
 
 sub number_tokens: Tests {
+    my $self = shift;
 
     {   # integer
         explain 'integer token: ', 
             dump assert_ok 'simple integer parses',
-            my $int = self->to_tokens('15');
+            my $int = $self->to_tokens('15');
         isa_ok $int, 'Script::SXC::Token::Number';
         is $int->value, 15, 'correct integer number value';
 
         # zero
         explain '0 integer token: ',
             dump assert_ok 'zero integer parses',
-            my $zero = self->to_tokens('0');
+            my $zero = $self->to_tokens('0');
         isa_ok $zero, 'Script::SXC::Token::Number';
         is $zero->value, 0, 'correct zero number value';
 
         # positive
         explain 'positive integer token: ', 
             dump assert_ok 'positive integer parses',
-            my $posint = self->to_tokens('+15');
+            my $posint = $self->to_tokens('+15');
         isa_ok $posint, 'Script::SXC::Token::Number';
         is $posint->value, 15, 'correct positive integer number value';
 
         # negative
         explain 'negative integer token: ', 
             dump assert_ok 'negative integer parses',
-            my $negint = self->to_tokens('-15');
+            my $negint = $self->to_tokens('-15');
         isa_ok $negint, 'Script::SXC::Token::Number';
         is $negint->value, -15, 'correct negative integer number value';
 
         # complex
         explain 'complex integer token: ', 
             dump assert_ok 'complex integer parses',
-            my $cint = self->to_tokens('-1_500.30');
+            my $cint = $self->to_tokens('-1_500.30');
         isa_ok $cint, 'Script::SXC::Token::Number';
         is $cint->value, '-1500.3', 'correct complex integer number value';
-
-        my $self = self;
 
         throws_ok { $self->to_tokens('15_') } 'Script::SXC::Exception::ParseError',
             'number ending with _ delimiter throws parse error';
     }
 
+    {
+        # rationals
+        explain 'rational number token: ',
+            dump assert_ok 'rational number parses',
+            my $rat = $self->to_tokens('5/8');
+        isa_ok $rat, 'Script::SXC::Token::Number';
+        isa_ok $rat->value, 'Math::BigRat';
+        is join('', $rat->value), '5/8', 'correct rational number value';
+
+        # negative rationals
+        explain 'negative rational number token: ',
+            dump assert_ok 'negative rational number parses',
+            my $nrat = $self->to_tokens('-5/8');
+        isa_ok $nrat, 'Script::SXC::Token::Number';
+        isa_ok $nrat->value, 'Math::BigRat';
+        is join('', $nrat->value), '-5/8', 'correct rational number value';
+    }
+
     {   # floats
         explain 'float token: ', 
             dump assert_ok 'float parses',
-            my $float = self->to_tokens('15.23');
+            my $float = $self->to_tokens('15.23');
         isa_ok $float, 'Script::SXC::Token::Number';
         is $float->value, '15.23', 'correct float number value';
 
         explain 'negative float token: ', 
             dump assert_ok 'negative float parses',
-            my $negfloat = self->to_tokens('-15.23');
+            my $negfloat = $self->to_tokens('-15.23');
         isa_ok $negfloat, 'Script::SXC::Token::Number';
         is $negfloat->value, '-15.23', 'correct negative float number value';
 
         explain 'complex float token: ', 
             dump assert_ok 'complex float parses',
-            my $cfloat = self->to_tokens('+1_500.23');
+            my $cfloat = $self->to_tokens('+1_500.23');
         isa_ok $cfloat, 'Script::SXC::Token::Number';
         is $cfloat->value, '1500.23', 'correct complex float number value';
-
-        my $self = self;
     
         throws_ok { $self->to_tokens('15.2.3') } 'Script::SXC::Exception::ParseError',
             'float with two commas throws parse error';
@@ -186,32 +204,30 @@ sub number_tokens: Tests {
     {   # bin
         explain 'bin token: ', 
             dump assert_ok 'simple bin parses',
-            my $bin = self->to_tokens('0b110');
+            my $bin = $self->to_tokens('0b110');
         isa_ok $bin, 'Script::SXC::Token::Number';
         is $bin->value, 0b110, 'correct bin number value';
 
         # negative bin
         explain 'negative bin token: ', 
             dump assert_ok 'negative bin parses',
-            my $nbin = self->to_tokens('-0b11');
+            my $nbin = $self->to_tokens('-0b11');
         isa_ok $nbin, 'Script::SXC::Token::Number';
         is $nbin->value, -0b11, 'correct negative bin number value';
 
         # complex bin
         explain 'complex bin token: ', 
             dump assert_ok 'complex bin parses',
-            my $cbin = self->to_tokens('0b11_10');
+            my $cbin = $self->to_tokens('0b11_10');
         isa_ok $cbin, 'Script::SXC::Token::Number';
         is $cbin->value, 0b1110, 'correct complex bin number value';
 
         # trailing zeroes
         explain 'trailing zeroes bin token: ', 
             dump assert_ok 'bin with trailing zeroes parses',
-            my $tzbin = self->to_tokens('0b0010');
+            my $tzbin = $self->to_tokens('0b0010');
         isa_ok $tzbin, 'Script::SXC::Token::Number';
         is $tzbin->value, 0b10, 'trailing zeroes are ignored for binary tokens';
-
-        my $self = self;
 
         throws_ok { $self->to_tokens('0b1021') } 'Script::SXC::Exception::ParseError',
             'invalid binary number throws parse error';
@@ -220,25 +236,23 @@ sub number_tokens: Tests {
     {   # hex
         explain 'hex token: ', 
             dump assert_ok 'simple hex parses',
-            my $hex = self->to_tokens('0xFF');
+            my $hex = $self->to_tokens('0xFF');
         isa_ok $hex, 'Script::SXC::Token::Number';
         is $hex->value, 0xFF, 'correct hex number value';
 
         # negative
         explain 'negative hex token: ', 
             dump assert_ok 'negative hex parses',
-            my $nhex = self->to_tokens('-0xFF');
+            my $nhex = $self->to_tokens('-0xFF');
         isa_ok $nhex, 'Script::SXC::Token::Number';
         is $nhex->value, -0xFF, 'correct negative hex number value';
 
         # complex
         explain 'complex hex token: ', 
             dump assert_ok 'complex hex parses',
-            my $chex = self->to_tokens('0xFF_FF');
+            my $chex = $self->to_tokens('0xFF_FF');
         isa_ok $chex, 'Script::SXC::Token::Number';
         is $chex->value, 0xFFFF, 'correct complex hex number value';
-
-        my $self = self;
 
         throws_ok { $self->to_tokens('0xPONY') } 'Script::SXC::Exception::ParseError',
             'invalid hexadecimal number throws parse error';
@@ -247,25 +261,23 @@ sub number_tokens: Tests {
     {   # oct
         explain 'oct token: ', 
             dump assert_ok 'simple oct parses',
-            my $oct = self->to_tokens('0666');
+            my $oct = $self->to_tokens('0666');
         isa_ok $oct, 'Script::SXC::Token::Number';
         is $oct->value, 0666, 'correct oct number value';
 
         # negative oct
         explain 'negative oct token: ', 
             dump assert_ok 'negative oct parses',
-            my $negoct = self->to_tokens('-0666');
+            my $negoct = $self->to_tokens('-0666');
         isa_ok $negoct, 'Script::SXC::Token::Number';
         is $negoct->value, -0666, 'correct negative oct number value';
 
         # complex oct
         explain 'complex oct token: ', 
             dump assert_ok 'complex oct parses',
-            my $coct = self->to_tokens('07_55');
+            my $coct = $self->to_tokens('07_55');
         isa_ok $coct, 'Script::SXC::Token::Number';
         is $coct->value, 07_55, 'correct complex oct number value';
-
-        my $self = self;
 
         throws_ok { $self->to_tokens('08') } 'Script::SXC::Exception::ParseError',
             'invalid octal number throws parse error';
@@ -273,14 +285,13 @@ sub number_tokens: Tests {
 }
 
 sub keyword_tokens: Tests {
+    my $self = shift;
 
     explain 'keyword token: ', 
         dump assert_ok 'keyword token parses',
-        my $keyword = self->to_tokens(':foo23-bar');
+        my $keyword = $self->to_tokens(':foo23-bar');
     isa_ok $keyword, 'Script::SXC::Token::Keyword';
     is $keyword->value, 'foo23-bar', 'correct keyword value';
-
-    my $self = self;
 
     throws_ok { $self->to_tokens(':23') } 'Script::SXC::Exception::ParseError',
         'keyword starting with digit throws parse error';
@@ -320,11 +331,12 @@ sub keyword_tokens: Tests {
 }
 
 sub character_tokens: Tests {
+    my $self = shift;
 
     {   # newlines
         explain 'newline char: ', 
             dump assert_ok 'newline char parses',
-            my $nl = self->to_tokens('#\newline');
+            my $nl = $self->to_tokens('#\newline');
         isa_ok $nl, 'Script::SXC::Token::Character';
         is $nl->value, "\n", 'newline character value correct';
     }
@@ -332,7 +344,7 @@ sub character_tokens: Tests {
     {   # tabs
         explain 'tabular char: ', 
             dump assert_ok 'tabular char parses',
-            my $tab = self->to_tokens('#\tab');
+            my $tab = $self->to_tokens('#\tab');
         isa_ok $tab, 'Script::SXC::Token::Character';
         is $tab->value, "\t", 'tabular character value correct';
     }
@@ -340,12 +352,10 @@ sub character_tokens: Tests {
     {   # spaces
         explain 'space char: ', 
             dump assert_ok 'space char parses',
-            my $sp = self->to_tokens('#\space');
+            my $sp = $self->to_tokens('#\space');
         isa_ok $sp, 'Script::SXC::Token::Character';
         is $sp->value, ' ', 'space character value correct';
     }
-
-    my $self = self;
 
     throws_ok { $self->to_tokens('#\wehopethiskeydoesnotexistanydaysoon') }
         'Script::SXC::Exception::ParseError',
@@ -355,6 +365,7 @@ sub character_tokens: Tests {
 }
 
 sub boolean_tokens: Tests {
+    my $self = shift;
 
     my %tests = (
         '#t'        => 1, 
@@ -369,12 +380,10 @@ sub boolean_tokens: Tests {
     for my $expr (keys %tests) {
         explain "boolean ($expr) token: ", 
             dump assert_ok "boolean ($expr) parses",
-            my $tok = self->to_tokens($expr);
+            my $tok = $self->to_tokens($expr);
         isa_ok $tok, 'Script::SXC::Token::Boolean';
         is $tok->value, $tests{ $expr }, "boolean token value for $expr correct";
     }
-
-    my $self = self;
 
     throws_ok { $self->to_tokens('#foo') } 'Script::SXC::Exception::ParseError',
         'invalid boolean specification throws parse error';
@@ -383,9 +392,10 @@ sub boolean_tokens: Tests {
 }
 
 sub comment_tokens: Tests {
+    my $self = shift;
 
     {   # simple
-        explain 'simple comment token: ', dump my @tok = self->to_tokens('foo ; bar ; baz');
+        explain 'simple comment token: ', dump my @tok = $self->to_tokens('foo ; bar ; baz');
         is scalar(@tok), 3, 'correct number of tokens for line with comment';
 
         # 'foo' <=> ' ' <=> 'bar ; baz'
@@ -399,6 +409,7 @@ sub comment_tokens: Tests {
 }
 
 sub cell_tokens: Tests {
+    my $self = shift;
 
     my @tests = (
         ['(', 'Script::SXC::Token::CellOpen',  '('],
@@ -409,18 +420,19 @@ sub cell_tokens: Tests {
 
     for my $test (@tests) {
         my ($expr, $token_class, $value) = @$test;
-        explain "cell token '$expr': ", dump my @tok = self->to_tokens($expr);
+        explain "cell token '$expr': ", dump my @tok = $self->to_tokens($expr);
         isa_ok $tok[0], $token_class;
         is $tok[0]->value, $value, "correct token for '$expr' cell opener";
     }
 }
 
 sub quote_tokens: Tests {
+    my $self = shift;
 
     {   # simple quote
         explain 'simple quote: ', 
             dump assert_ok 'simple quote parses',
-            my $tok = self->to_tokens(q{'});
+            my $tok = $self->to_tokens(q{'});
         isa_ok $tok, 'Script::SXC::Token::Quote';
         is $tok->value, q{'}, 'simple quote token has correct value';
         ok !$tok->is_quasiquote, 'simple quote has no quasiquote flag';
@@ -429,7 +441,7 @@ sub quote_tokens: Tests {
     {   # quasiquote
         explain 'quasi quote: ', 
             dump assert_ok 'quasi quote parses',
-            my $tok = self->to_tokens(q{`});
+            my $tok = $self->to_tokens(q{`});
         isa_ok $tok, 'Script::SXC::Token::Quote';
         is $tok->value, q{`}, 'quasi quote token has correct value';
         ok $tok->is_quasiquote, 'simple quote has quasiquote flag';
@@ -438,7 +450,7 @@ sub quote_tokens: Tests {
     {   # quoted symbol
         explain 'quoted symbol: ', 
             dump assert_ok 'quoted symbol parses',
-            my @tok = self->to_tokens(q{'foo});
+            my @tok = $self->to_tokens(q{'foo});
         isa_ok $tok[0], 'Script::SXC::Token::Quote';
         isa_ok $tok[1], 'Script::SXC::Token::Symbol';
         is $tok[0]->value, q{'}, 'quote token has correct value';
@@ -449,7 +461,7 @@ sub quote_tokens: Tests {
     {   # quoted cell
         explain 'quoted cell: ', 
             dump assert_ok 'quoted cell parses',
-            my @tok = self->to_tokens(q{`(bar)});
+            my @tok = $self->to_tokens(q{`(bar)});
         isa_ok $tok[0], 'Script::SXC::Token::Quote';
         isa_ok $tok[1], 'Script::SXC::Token::CellOpen';
         isa_ok $tok[2], 'Script::SXC::Token::Symbol';
@@ -462,7 +474,7 @@ sub quote_tokens: Tests {
     {   # unquote
         explain 'unquote token: ', 
             dump assert_ok 'unquote parses',
-            my $tok = self->to_tokens(q{,});
+            my $tok = $self->to_tokens(q{,});
         isa_ok $tok, 'Script::SXC::Token::Unquote';
         is $tok->value, q{,}, 'unquote token has correct value';
         ok !$tok->is_splicing, 'unquote token has no splicing flag';
@@ -471,14 +483,14 @@ sub quote_tokens: Tests {
     {   # unquote-splicing
         explain 'splicing unquote token: ', 
             dump assert_ok 'splicing unquote parses',
-            my $tok = self->to_tokens(q{,@});
+            my $tok = $self->to_tokens(q{,@});
         isa_ok $tok, 'Script::SXC::Token::Unquote';
         is $tok->value, q{,@}, 'splicing unquote token has correct value';
         ok $tok->is_splicing, 'splicing unquote token has splicing flag';
     }
 
     {   # unquote symbol
-        explain 'unquote symbol tokens: ', dump my @tok = self->to_tokens(',foo');
+        explain 'unquote symbol tokens: ', dump my @tok = $self->to_tokens(',foo');
         is scalar(@tok), 2, 'correct number of tokens for unquoted symbol';
         isa_ok $tok[0], 'Script::SXC::Token::Unquote';
         isa_ok $tok[1], 'Script::SXC::Token::Symbol';
@@ -487,7 +499,7 @@ sub quote_tokens: Tests {
     }
 
     {   # splice unquoted list
-        explain 'unquoted splice example tokens: ', dump my @tok = self->to_tokens('(foo ,@(bar) baz)');
+        explain 'unquoted splice example tokens: ', dump my @tok = $self->to_tokens('(foo ,@(bar) baz)');
         my @token_classes = qw( 
             CellOpen 
                 Symbol 
@@ -513,16 +525,17 @@ sub quote_tokens: Tests {
 }
 
 sub dot_token: Tests {
+    my $self = shift;
 
     explain 'dot token: ', 
         dump assert_ok 'dot token parses', 
-        my $dot = self->to_tokens('.');
+        my $dot = $self->to_tokens('.');
     isa_ok $dot, 'Script::SXC::Token::Dot';
     is $dot->value, '.', 'dot token has correct value';
 
     explain 'pair token: ', 
         dump assert_ok 'pair expression parses',
-        my @pair = self->to_tokens('(foo . bar)');
+        my @pair = $self->to_tokens('(foo . bar)');
     my @token_classes = qw( CellOpen Symbol Whitespace Dot Whitespace Symbol CellClose );
     is scalar(@pair), scalar(@token_classes), 'pair parses to correct number of tokens';
     isa_ok $pair[ $_ ], 'Script::SXC::Token::' . $token_classes[ $_ ]
@@ -533,11 +546,12 @@ sub dot_token: Tests {
 }
 
 sub string_tokens: Tests {
+    my $self = shift;
 
     {   # simple string
         explain 'simple string token: ', 
             dump assert_ok 'simple string parses', 
-            my $str = self->to_tokens('"foo"');
+            my $str = $self->to_tokens('"foo"');
         isa_ok $str, 'Script::SXC::Token::String';
         is $str->value, '"foo"', 'simple string token has correct value';
     }
@@ -545,7 +559,7 @@ sub string_tokens: Tests {
     {   # complex string
         explain 'complex string token: ', 
             dump assert_ok 'complex string parses', 
-            my $str = self->to_tokens('"foo \"bar\" (baz] ,..."');
+            my $str = $self->to_tokens('"foo \"bar\" (baz] ,..."');
         isa_ok $str, 'Script::SXC::Token::String';
         is $str->value, '"foo \"bar\" (baz] ,..."', 'complex string token has correct value';
     }
@@ -553,18 +567,15 @@ sub string_tokens: Tests {
     {   # interpolating string
         explain 'interpolating string token: ', 
             dump assert_ok 'interpolating string parses',
-            my $str = self->to_tokens('"foo: $bar $(baz) ${qux}"');
+            my $str = $self->to_tokens('"foo: $bar $(baz) ${qux}"');
         isa_ok $str, 'Script::SXC::Token::String';
         is $str->value, '"foo: $bar $(baz) ${qux}"', 'interpolating string token has correct value';
     }
-
-    my $self = self;
 
     throws_ok { diag 'should have croaked: ', dump $self->to_tokens('"foo') } 'Script::SXC::Exception::ParseError',
         'unclosed string throws parse error';
     is $@->type, 'invalid_string', 'invalid string exception parse error type is correct';
     like "$@", qr/"foo/, 'error message contains invalid string expression';
 }
-
 
 1;

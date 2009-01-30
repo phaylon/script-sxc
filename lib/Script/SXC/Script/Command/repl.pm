@@ -194,6 +194,7 @@ method run {
             perltidy(
                 source      => \$body,
                 destination => \$body,
+                perltidyrc  => $self->shared_file('perltidyrc'),
             ) if $self->pretty;
 
             # remember all existing variables

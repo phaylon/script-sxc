@@ -2,7 +2,6 @@ package Script::SXC::Test::Reader;
 use strict;
 use parent 'Script::SXC::Test';
 use Method::Signatures;
-use self;
 
 use CLASS;
 use Test::Most;
@@ -16,32 +15,35 @@ use Script::SXC::Test::Util
 CLASS->mk_accessors(qw( reader ));
 
 sub setup_reader: Test(startup) {
-    self->reader(ReaderClass->new);
+    my $self = shift;
+    $self->reader(ReaderClass->new);
 }
 
 sub transform {
-    my ($body) = args;
+    my ($self, $body) = @_;
     explain "transforming: '$body'";
-    self->reader->build_stream(\$body)->transform;
+    $self->reader->build_stream(\$body)->transform;
 }
 
 sub whitespaces: Tests {
+    my $self = shift;
 
     {   # some simple whitespaces
         explain 'whitespace tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform("  \n\t\n  ");
+            my $tree = $self->transform("  \n\t\n  ");
         isa_ok $tree, TreeClass;
         is $tree->content_count, 0, 'whitespace becomes empty tree';
     }
 }
 
 sub symbols: Tests {
+    my $self = shift;
 
     {   # single symbol
         explain 'symbol tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('foo');
+            my $tree = $self->transform('foo');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'correct number of items in tree';
         isa_ok my $symbol = $tree->get_content_item(0), 'Script::SXC::Tree::Symbol';
@@ -53,7 +55,7 @@ sub symbols: Tests {
     {   # multiple symbols
         explain 'multi symbol tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform("foo\nbar\nbaz");
+            my $tree = $self->transform("foo\nbar\nbaz");
         isa_ok $tree, TreeClass;
         is $tree->content_count, 3, 'tree contains three items';
 
@@ -70,7 +72,7 @@ sub symbols: Tests {
     {   # dot symbols
         explain 'dot tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('.');
+            my $tree = $self->transform('.');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in dot tree';
         my $dot = $tree->get_content_item(0);
@@ -81,11 +83,12 @@ sub symbols: Tests {
 }
 
 sub regexes: Tests {
+    my $self = shift;
 
     {   # simple regex
         explain 'simple regex: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('/foo/');
+            my $tree = $self->transform('/foo/');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in simple regex tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Regex';
@@ -95,7 +98,7 @@ sub regexes: Tests {
     {   # complex regex
         explain 'complex regex: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('/\Afoo$bar%baz@qux (\@.\%.\$)\Z/xi-sm');
+            my $tree = $self->transform('/\Afoo$bar%baz@qux (\@.\%.\$)\Z/xi-sm');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in complex regex tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Regex';
@@ -104,11 +107,12 @@ sub regexes: Tests {
 }
 
 sub numbers: Tests {
+    my $self = shift;
 
     {   # simple integer
         explain 'simple integer tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('23');
+            my $tree = $self->transform('23');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in simple integer tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Number';
@@ -118,7 +122,7 @@ sub numbers: Tests {
     {   # negative float with delimiters
         explain 'float tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('-17_500.333');
+            my $tree = $self->transform('-17_500.333');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'correct number of items';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Number';
@@ -128,7 +132,7 @@ sub numbers: Tests {
     {   # zero-point float
         explain 'zero point float: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('0.5');
+            my $tree = $self->transform('0.5');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'correct number of items';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Number';
@@ -137,11 +141,12 @@ sub numbers: Tests {
 }
 
 sub keywords: Tests {
+    my $self = shift;
 
     {   # simple keyword
         explain 'simple keyword tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform(':foo');
+            my $tree = $self->transform(':foo');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in simple keyword tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Keyword';
@@ -151,7 +156,7 @@ sub keywords: Tests {
     {   # swapped doublecolon keyword
         explain 'simple keyword tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('foo:');
+            my $tree = $self->transform('foo:');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in simple keyword tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Keyword';
@@ -160,11 +165,12 @@ sub keywords: Tests {
 }
 
 sub strings: Tests {
+    my $self = shift;
 
     {   # simple characters
         explain 'simple character tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('#\space');
+            my $tree = $self->transform('#\space');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in simple character tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::String';
@@ -174,7 +180,7 @@ sub strings: Tests {
     {   # plain string
         explain 'plain string: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('"xyz"');
+            my $tree = $self->transform('"xyz"');
         isa_ok $tree, TreeClass;
         my $str = $tree->get_content_item(0);
         string_ok $str, 'xyz', 'plain string';
@@ -183,7 +189,7 @@ sub strings: Tests {
     {   # string with newline
         explain 'string with newline: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('"foo\nbar"');
+            my $tree = $self->transform('"foo\nbar"');
         isa_ok $tree, TreeClass;
         my $str = $tree->get_content_item(0);
         string_ok $str, "foo\nbar", 'string with newline';
@@ -192,7 +198,7 @@ sub strings: Tests {
     {   # string with var interpolation
         explain 'string with var: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('"foo ${bar} baz"');
+            my $tree = $self->transform('"foo ${bar} baz"');
         isa_ok $tree, TreeClass;
         my $ls = $tree->get_content_item(0);
         list_ok $ls, 'string application',
@@ -208,7 +214,7 @@ sub strings: Tests {
     {   # string with apply interpolation
         explain 'string with apply: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('"foo $(join sep (list 1 2 3)) bar"');
+            my $tree = $self->transform('"foo $(join sep (list 1 2 3)) bar"');
         isa_ok $tree, TreeClass;
         my $ls = $tree->get_content_item(0);
         list_ok $ls, 'string application for interpolation',
@@ -238,8 +244,6 @@ sub strings: Tests {
             ];
     }
 
-    my $self = self;
-
     throws_ok { $self->transform('"foo ${bar"') } 'Script::SXC::Exception::ParseError',
         'unclosed var interpolation';
     like $@, qr/variable interpolation/i, 'unclosed var interpolation message';
@@ -254,11 +258,12 @@ sub strings: Tests {
 }
 
 sub booleans: Tests {
+    my $self = shift;
 
     {   # simple boolean
         explain 'simple boolean tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('#yes');
+            my $tree = $self->transform('#yes');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'single item in simple boolean tree';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Boolean';
@@ -267,11 +272,12 @@ sub booleans: Tests {
 }
 
 sub comments: Tests {
+    my $self = shift;
 
     {   # comment removal
         explain 'symbol with comment tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('foo; bar ; baz');
+            my $tree = $self->transform('foo; bar ; baz');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'only one item in tree with comments';
         isa_ok my $item = $tree->get_content_item(0), 'Script::SXC::Tree::Symbol';
@@ -280,7 +286,7 @@ sub comments: Tests {
 }
 
 sub cells: Tests {
-    my $self = self;
+    my $self = shift;
 
     {   # unexpected closing parens
         throws_ok { $self->transform(')') } 'Script::SXC::Exception::ParseError',
@@ -293,7 +299,7 @@ sub cells: Tests {
     {   # simple cell with symbol
         explain 'list with symbol: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('(foo)');
+            my $tree = $self->transform('(foo)');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'tree contains one item';
         isa_ok my $list = $tree->get_content_item(0), 'Script::SXC::Tree::List';
@@ -305,7 +311,7 @@ sub cells: Tests {
     {   # more complex tree
         explain 'more complex tree: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('(foo [bar] baz)');
+            my $tree = $self->transform('(foo [bar] baz)');
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'tree contains one item (should be list)';
         isa_ok my $list = $tree->get_content_item(0), 'Script::SXC::Tree::List';
@@ -322,7 +328,6 @@ sub cells: Tests {
     }
 
     {   
-        my $self = self;
 
         # unexpected end of stream
         throws_ok { $self->transform('(foo bar') } 'Script::SXC::Exception::ParseError',
@@ -340,11 +345,12 @@ sub cells: Tests {
 }
 
 sub inline_hashes: Tests {
+    my $self = shift;
 
     {   # simple creation
         explain 'inline hash: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform('{foo: 23 bar: 42}');
+            my $tree = $self->transform('{foo: 23 bar: 42}');
         is $tree->content_count, 1, 'inline hash parses into single item';
         $tree = $tree->get_content_item(0);
         isa_ok $tree, 'Script::SXC::Tree::Hash';
@@ -357,11 +363,12 @@ sub inline_hashes: Tests {
 }
 
 sub quoting: Tests {
+    my $self = shift;
 
     {   # simple quote
         explain 'simple quote: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform(q/(foo 'bar)/);
+            my $tree = $self->transform(q/(foo 'bar)/);
         is $tree->content_count, 1, 'tree contains one item';
         isa_ok my $list = $tree->get_content_item(0), 'Script::SXC::Tree::List';
         is $list->content_count, 2, 'list contains two items';
@@ -379,7 +386,7 @@ sub quoting: Tests {
     {   # quasiquote and unquotes
         explain 'quasiquote and unquotes: ',
             dump assert_ok 'tree built ok',
-            my $tree = self->transform(q/(foo `[bar ,baz ,@(qux)])/);
+            my $tree = $self->transform(q/(foo `[bar ,baz ,@(qux)])/);
         isa_ok $tree, TreeClass;
         is $tree->content_count, 1, 'tree has one item';
         my $list = $tree->get_content_item(0);

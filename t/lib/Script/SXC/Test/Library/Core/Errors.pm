@@ -1,13 +1,12 @@
 package Script::SXC::Test::Library::Core::Errors;
 use strict;
 use parent 'Script::SXC::Test::Library::Core';
-use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
 
 sub T950_errors: Tests {
-    my $self  = self;
+    my $self  = shift;
     my $class = ref $self;
 
     # from here

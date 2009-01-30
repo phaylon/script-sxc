@@ -34,7 +34,8 @@ CLASS->add_delegated_items({
 
     'Script::SXC::Library::Core::Contexts'      => [qw( values->list values->hash )],
 
-    'Script::SXC::Library::Core::Apply'         => [qw( apply )],
+    'Script::SXC::Library::Core::Apply'         
+        => [qw( apply apply! )],
 
     'Script::SXC::Library::Core::Recursion'     => [qw( recurse )],
 

@@ -2,7 +2,7 @@ package Script::SXC::Test::Library;
 use 5.010;
 use strict;
 use parent 'Script::SXC::Test';
-use self;
+#use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
@@ -16,8 +16,9 @@ use aliased 'Script::SXC::Compiled',    'CompiledClass';
 CLASS->mk_accessors(qw( reader compiler ));
 
 sub setup_objects: Test(setup) {
-    self->reader(ReaderClass->new);
-    self->compiler(CompilerClass->new(
+    my ($self) = @_;
+    $self->reader(ReaderClass->new);
+    $self->compiler(CompilerClass->new(
         optimize_tailcalls           => $ENV{TEST_TAILCALLOPT},
         force_firstclass_procedures  => $ENV{TEST_FIRSTCLASS},
         inline_firstclass_procedures => $ENV{TEST_FIRSTCLASS_INLINE} // 1,
@@ -25,7 +26,7 @@ sub setup_objects: Test(setup) {
 }
 
 sub tidy {
-    my ($content) = args;
+    my ($self, $content) = @_;
     return $content if $ENV{NO_TIDY};
     my $result;
 
@@ -38,18 +39,18 @@ sub tidy {
 }
 
 sub run {
-    my ($content) = args;
+    my ($self, $content) = @_;
 
-    my $tree = self->reader->build_stream(\$content)->transform;
+    my $tree = $self->reader->build_stream(\$content)->transform;
     isa_ok $tree, TreeClass;
     explain 'built tree: ', $tree;
 
-    my $compiled = self->compiler->compile_tree($tree);
+    my $compiled = $self->compiler->compile_tree($tree);
     isa_ok $compiled, CompiledClass;
     explain 'compiled result: ', $compiled;
 
     explain 'original: ', $content;
-    explain 'compiled body: ', self->tidy($compiled->get_body);
+    explain 'compiled body: ', $self->tidy($compiled->get_body);
     my $value = $compiled->evaluate;
     explain 'returned value: ', $value;
 

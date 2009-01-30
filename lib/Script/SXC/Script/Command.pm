@@ -8,6 +8,8 @@ use MooseX::Types::Moose qw( Object Bool );
 #use aliased 'Script::SXC::Script::Message',          'InfoMessage';
 #use aliased 'Script::SXC::Script::Message::Warning', 'WarningMessage';
 
+use File::ShareDir qw( dist_file );
+
 sub ReaderClass    { 
     Class::MOP::load_class('Script::SXC::Reader'); 
     return 'Script::SXC::Reader';
@@ -79,6 +81,10 @@ has inline_firstclass_procedures => (
     default         => 1,
     documentation   => 'inline firstclass procedures when possible (default: true)',
 );
+
+method shared_file (Str $filename) {
+    return dist_file 'Script-SXC', $filename;
+}
 
 method _build_default_reader { ReaderClass->new }
 

@@ -1,25 +1,25 @@
 package Script::SXC::Test::Library::Core::Lexicals;
 use strict;
 use parent 'Script::SXC::Test::Library::Core';
-use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
 
 sub T100_let: Tests {
+    my $self = shift;
 
     # simple
-    is self->run('(let [(n 23)] n)'), 23, 'simple let with one constant definition returns value';
+    is $self->run('(let [(n 23)] n)'), 23, 'simple let with one constant definition returns value';
 
     # let with two vars and complex expressions
-    {   my $lambda = self->run('(λ (p1 p2 p3) (let [(n (p1)) (m (p2))] (p3 n m)))');
+    {   my $lambda = $self->run('(λ (p1 p2 p3) (let [(n (p1)) (m (p2))] (p3 n m)))');
         is ref($lambda), 'CODE', 'complex let with two variables and complex expressions compiles';
         is $lambda->(sub { 23 }, sub { 42 }, sub { $_[0] + $_[1] }), 65, 'complex let compiled correctly';
     }
 }
 
 sub T050_let_common: Tests {
-    my $self = self;
+    my $self = shift;
 
     for my $let ('let', 'let*', 'let-rec') {
 
@@ -65,7 +65,7 @@ sub T050_let_common: Tests {
 }
 
 sub T200_let_binding: Tests {
-    my $self = self;
+    my $self = shift;
 
     # normal let can't bind earlier variable
     throws_ok { $self->run('(let ((n 23) (m n)) m)') } 'Script::SXC::Exception::UnboundVar',
@@ -84,13 +84,15 @@ sub T200_let_binding: Tests {
 }
 
 sub T120_sequential_let: Tests {
+    my $self = shift;
 
-    is self->run('(let* [(n 23) (m (λ () n))] (m))'), 23, 'let* gives variables sequential access';
+    is $self->run('(let* [(n 23) (m (λ () n))] (m))'), 23, 'let* gives variables sequential access';
 }
 
 sub T140_recursive_let: Tests {
+    my $self = shift;
 
-    is ref(my $letrec = self->run('(lambda (t) (let-rec ((f (λ () (if (t) (f) ())))) (f)))')), 'CODE',
+    is ref(my $letrec = $self->run('(lambda (t) (let-rec ((f (λ () (if (t) (f) ())))) (f)))')), 'CODE',
         'let-rec with recursive definition compiles';
     my ($left, $num) = (5, 1);
     is_deeply $letrec->(sub {
@@ -101,9 +103,9 @@ sub T140_recursive_let: Tests {
 }
 
 sub T600_modifications: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is self->run('(let [(n 23)] (set! n 42) n)'), 42, 'lexical value can be modified';
+    is $self->run('(let [(n 23)] (set! n 42) n)'), 42, 'lexical value can be modified';
 
     # can't modify globals
     throws_ok { $self->run('(set! + 23)') } 'Script::SXC::Exception::ParseError',
@@ -131,10 +133,10 @@ sub T600_modifications: Tests {
 }
 
 sub T700_given: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is self->run('(given 23 _)'), 23, 'simplest given returns correct result';
-    is self->run('(given 7 (* _ 2))'), 14, 'given topic in application returns correct result';
+    is $self->run('(given 23 _)'), 23, 'simplest given returns correct result';
+    is $self->run('(given 7 (* _ 2))'), 14, 'given topic in application returns correct result';
 
     throws_ok { $self->run('(given 23)') } 'Script::SXC::Exception', 'given with single argument throws exception';
     like $@, qr/missing/i, 'error message contains "missing"';

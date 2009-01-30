@@ -1,48 +1,52 @@
 package Script::SXC::Test::Library::Core::Lambdas;
 use strict;
 use parent 'Script::SXC::Test::Library::Core';
-use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
 
 sub T100_simplest: Tests {
+    my $self = shift;
 
-    my $lambda = self->run('(lambda () 23)');
+    my $lambda = $self->run('(lambda () 23)');
     is ref($lambda), 'CODE', 'simple lambda returned code reference';
     is $lambda->(), 23, 'execution of lambda returned evaluated body expression';
 }
 
 sub T110_simple_with_list: Tests {
+    my $self = shift;
 
-    my $lambda = self->run('(lambda foo 23)');
+    my $lambda = $self->run('(lambda foo 23)');
     is ref($lambda), 'CODE', 'lambda with list parameter returned code reference';
     is $lambda->(), 23, 'execution of lambda returned evaluated body expression';
 }
 
 sub T120_simple_with_single_param: Tests {   
+    my $self = shift;
 
-    my $lambda = self->run('(lambda (n) 23)');
+    my $lambda = $self->run('(lambda (n) 23)');
     is ref($lambda), 'CODE', 'lambda with one parameter returned code reference';
     is $lambda->(42), 23, 'execution of lambda returned evaluated body expression';
 }
 
 sub T130_simple_with_single_and_access: Tests {
+    my $self = shift;
 
-    my $lambda = self->run('(lambda (n) n)');
+    my $lambda = $self->run('(lambda (n) n)');
     is ref($lambda), 'CODE', 'lambda with one parameter returned code reference';
     is $lambda->(777), 777, 'lambda with one parameter and local environment access returns passed value';
 }
 
 sub T150_kons_and_kar: Tests {   
+    my $self = shift;
 
-    my $kons = self->run('(lambda (n m) (lambda (f) (f n m)))');
+    my $kons = $self->run('(lambda (n m) (lambda (f) (f n m)))');
     is ref($kons), 'CODE', 'kons lambda definition returned code reference';
 
-    my $kar = self->run('(lambda (p) (p (lambda (n m) n)))');
+    my $kar = $self->run('(lambda (p) (p (lambda (n m) n)))');
     is ref($kar), 'CODE', 'kar lambda definition returned code reference';
 
-    my $kdr = self->run('(lambda (p) (p (lambda (n m) m)))');
+    my $kdr = $self->run('(lambda (p) (p (lambda (n m) m)))');
     is ref($kdr), 'CODE', 'kdr lambda definition returned code reference';
 
     my $pair = $kons->(23, 42);
@@ -52,16 +56,17 @@ sub T150_kons_and_kar: Tests {
 }
 
 sub T200_direct_application: Tests {
+    my $self = shift;
 
-    is self->run('((lambda (n) n) 23)'), 23, 'direct lambda application returned passed value';
+    is $self->run('((lambda (n) n) 23)'), 23, 'direct lambda application returned passed value';
 }
 
 sub T300_multi_params_with_rest {
-    my $self = self;
+    my $self = shift;
 
-    is self->run('((lambda (x y . z) x) 1 2 3 4)'), 1, 'first parameter of semi complex signature correct';
-    is self->run('((lambda (x y . z) y) 1 2 3 4)'), 2, 'second parameter of semi complex signature correct';
-    is_deeply self->run('((lambda (x y . z) z) 1 2 3 4)'), [3, 4], 'rest parameter of semi complex signature correct';
+    is $self->run('((lambda (x y . z) x) 1 2 3 4)'), 1, 'first parameter of semi complex signature correct';
+    is $self->run('((lambda (x y . z) y) 1 2 3 4)'), 2, 'second parameter of semi complex signature correct';
+    is_deeply $self->run('((lambda (x y . z) z) 1 2 3 4)'), [3, 4], 'rest parameter of semi complex signature correct';
 
     throws_ok { $self->run('(lambda (x . y z) x)') } 'Script::SXC::Exception::ParseError', 
         'too many rest parameters for lambda throws parse error';
@@ -73,12 +78,13 @@ sub T300_multi_params_with_rest {
 }
 
 sub T310_lambda_alias: Tests {
+    my $self = shift;
 
-    is self->run('((λ (n) n) 23)'), 23, 'lambda shortcut λ works';
+    is $self->run('((λ (n) n) 23)'), 23, 'lambda shortcut λ works';
 }
 
 sub T350_general_exceptions: Tests {
-    my $self = self;
+    my $self = shift;
 
     throws_ok { $self->run('(lambda)') } 'Script::SXC::Exception::ParseError', 'lambda without arguments throws parse error';
     throws_ok { $self->run('(lambda n)') } 'Script::SXC::Exception::ParseError', 'lambda with only one argument throws parse error';
@@ -86,9 +92,9 @@ sub T350_general_exceptions: Tests {
 }
 
 sub T400_extended_param_spec: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is_deeply self->run('((lambda ((foo) (bar)) (list foo bar)) 2 3)'), [2, 3], 
+    is_deeply $self->run('((lambda ((foo) (bar)) (list foo bar)) 2 3)'), [2, 3], 
         'lambda with extended signature but only names compiles';
 
     throws_ok { $self->run('(lambda ((:foo)) 23)') } 'Script::SXC::Exception::ParseError', 
@@ -113,9 +119,9 @@ sub T400_extended_param_spec: Tests {
 }
 
 sub T405_where_clause: Tests {   
-    my $self = self;
+    my $self = shift;
 
-    my $lambda = self->run('(lambda ((foo :where (size foo)) . (rest :where (size rest))) (list foo rest))');
+    my $lambda = $self->run('(lambda ((foo :where (size foo)) . (rest :where (size rest))) (list foo rest))');
     is ref($lambda), 'CODE', 'lambda with where clauses on parameters compiles';
     is_deeply $lambda->([1, 2, 3], 4, 5, 6), [[1, 2, 3], [4, 5, 6]], 'lambda with where clause on params returns correct value';
 
@@ -131,9 +137,9 @@ sub T405_where_clause: Tests {
 }
 
 sub T410_extended_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (x rest: y) (list x y))')), 'CODE', 'lambda with extended rest compiles';
+    is ref(my $lambda = $self->run('(lambda (x rest: y) (list x y))')), 'CODE', 'lambda with extended rest compiles';
     is_deeply $lambda->(1, 2, 3), [1, [2, 3]], 'lambda with extended rest sets correct values';
     is_deeply $lambda->(1), [1, []], 'lambda with extended empty rest sets correct values';
 
@@ -148,9 +154,9 @@ sub T410_extended_rest: Tests {
 }
 
 sub T415_optional: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (a b optional: c d) (list a b c d))')), 'CODE', 'lambda with optionals compiles';
+    is ref(my $lambda = $self->run('(lambda (a b optional: c d) (list a b c d))')), 'CODE', 'lambda with optionals compiles';
     is_deeply $lambda->(1, 2, 3, 4), [1, 2, 3, 4], 'lambda with optional and all specified returns correct values';
     is_deeply $lambda->(1, 2, 3), [1, 2, 3, undef], 'lambda with optional and some specified returns correct values';
     is_deeply $lambda->(1, 2), [1, 2, undef, undef], 'lambda with optional and none specified returns correct value';
@@ -163,9 +169,9 @@ sub T415_optional: Tests {
 }
 
 sub T420_optional_with_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (a optional: b rest: c) (list a b c))')), 'CODE', 'lambda with optional and rest compiles';
+    is ref(my $lambda = $self->run('(lambda (a optional: b rest: c) (list a b c))')), 'CODE', 'lambda with optional and rest compiles';
     is_deeply $lambda->(1), [1, undef, []], 'lambda with optional and rest returns correct values with only mandatory';
     is_deeply $lambda->(1, 2), [1, 2, []], 'lambda with optional and rest returns correct values with mandatory and optional';
     is_deeply $lambda->(1, 2, 3), [1, 2, [3]], 'lambda with optional and rest returns correct values with all set';
@@ -176,9 +182,9 @@ sub T420_optional_with_rest: Tests {
 }
 
 sub T425_named: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (named: bar baz) (list bar baz))')), 'CODE', 'lambda with named parameters compiles';
+    is ref(my $lambda = $self->run('(lambda (named: bar baz) (list bar baz))')), 'CODE', 'lambda with named parameters compiles';
     is_deeply $lambda->(bar => 2, baz => 3), [2, 3], 'lambda with named parameters returns correct values';
 
     throws_ok { $lambda->(bar => 2) } 'Script::SXC::Exception', 'lambda with missing named arguments throws exception';
@@ -193,9 +199,9 @@ sub T425_named: Tests {
 }
 
 sub T430_named_with_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (named: foo rest: bar) (list foo bar))')), 'CODE',
+    is ref(my $lambda = $self->run('(lambda (named: foo rest: bar) (list foo bar))')), 'CODE',
         'lambda with named and rest compiles';
     is_deeply $lambda->(foo => 2, bar => 3), [2, { bar => 3 }],
         'lambda with named and rest returns correct values';
@@ -214,9 +220,9 @@ sub T430_named_with_rest: Tests {
 }
 
 sub T435_combined: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (foo named: bar) (list foo bar))')), 'CODE', 
+    is ref(my $lambda = $self->run('(lambda (foo named: bar) (list foo bar))')), 'CODE', 
         'lambda with combined parameters compiles';
     is_deeply $lambda->(23, bar => 42), [23, 42], 'lambda with combined parameters returns correct values';
     
@@ -240,9 +246,9 @@ sub T435_combined: Tests {
 }
 
 sub T440_combined_with_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (foo named: bar rest: baz) (list foo bar baz))')), 'CODE',
+    is ref(my $lambda = $self->run('(lambda (foo named: bar rest: baz) (list foo bar baz))')), 'CODE',
         'lambda with combined and rest compiles';
     is_deeply $lambda->(1, bar => 2, baz => 3), [1, 2, { baz => 3 }], 'lambda with combined and rest returns correct values';
     is_deeply $lambda->(1, bar => 2), [1, 2, {}], 'lambda with combined and no rest returns correct values';
@@ -264,9 +270,9 @@ sub T440_combined_with_rest: Tests {
 }
 
 sub T445_named_and_optional: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (named: foo optional: bar) (list foo bar))')), 'CODE',
+    is ref(my $lambda = $self->run('(lambda (named: foo optional: bar) (list foo bar))')), 'CODE',
         'lambda with named and optionals compiles';
     is_deeply $lambda->(foo => 3, bar => 4), [3, 4], 'lambda with named and optionals returns correct values';
     is_deeply $lambda->(foo => 3), [3, undef], 'lambda with named and not specified optional returns correct values';
@@ -288,9 +294,9 @@ sub T445_named_and_optional: Tests {
 }
 
 sub T450_named_and_optional_with_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (named: foo optional: bar rest: baz) (list foo bar baz))')), 'CODE',
+    is ref(my $lambda = $self->run('(lambda (named: foo optional: bar rest: baz) (list foo bar baz))')), 'CODE',
         'lambda with named and optionals with rest compiles';
     is_deeply $lambda->(foo => 3, bar => 4, baz => 5), [3, 4, { baz => 5 }], 
         'lambda with named and optionals with rest returns correct values';
@@ -312,9 +318,9 @@ sub T450_named_and_optional_with_rest: Tests {
 }
 
 sub T455_combined_with_optional: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (foo named: bar optional: baz) (list foo bar baz))')), 'CODE',
+    is ref(my $lambda = $self->run('(lambda (foo named: bar optional: baz) (list foo bar baz))')), 'CODE',
         'lambda with combined and optional compiles';
     is_deeply $lambda->(23, bar => 17, baz => 33), [23, 17, 33], 
         'lambda with combined and optional returns correct value';
@@ -340,7 +346,7 @@ sub T455_combined_with_optional: Tests {
     like $@, qr/unknown/i, 'error message contains "unknown"';
     like $@, qr/bax/, 'error message contains missing mandatory argument name';
 
-    is ref(my $lambda2 = self->run('(lambda (foo optional: bar named: baz) (list foo bar baz))')), 'CODE',
+    is ref(my $lambda2 = $self->run('(lambda (foo optional: bar named: baz) (list foo bar baz))')), 'CODE',
         'lambda with combined and fixed optionals compiles';
     is_deeply $lambda2->(3, 4, baz => 5), [3, 4, 5], 
         'lambda with combined and fixed optionals returns correct values';
@@ -364,9 +370,9 @@ sub T455_combined_with_optional: Tests {
 }
 
 sub T460_combined_with_optional_and_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(my $lambda = self->run('(lambda (foo named: bar optional: baz rest: qux) (list foo bar baz qux))')), 'CODE',
+    is ref(my $lambda = $self->run('(lambda (foo named: bar optional: baz rest: qux) (list foo bar baz qux))')), 'CODE',
         'lambda with combined and optional and rest compiles';
     is_deeply $lambda->(23, bar => 17, baz => 33, qux => 44), [23, 17, 33, { qux => 44 }], 
         'lambda with combined and optional and rest returns correct value';
@@ -396,7 +402,7 @@ sub T460_combined_with_optional_and_rest: Tests {
     like $@, qr/missing/i, 'error message contains "missing"';
     like $@, qr/bar/, 'error message contains missing named argument name';
 
-    is ref($lambda = self->run('(lambda (foo optional: bar named: baz rest: qux) (list foo bar baz qux))')), 'CODE',
+    is ref($lambda = $self->run('(lambda (foo optional: bar named: baz rest: qux) (list foo bar baz qux))')), 'CODE',
         'lambda with combined and optional reversed compiles';
     is_deeply $lambda->(23), [23, undef, undef, {}],
         'lambda with combined and optional reversed returns correct values with only mandatory argument';
@@ -415,9 +421,9 @@ sub T460_combined_with_optional_and_rest: Tests {
 }
 
 sub T500_arg_count_with_rest: Tests {
-    my $self = self;
+    my $self = shift;
 
-    my $with_rest = self->run('(lambda (a b . c) (list a b c))');
+    my $with_rest = $self->run('(lambda (a b . c) (list a b c))');
     is ref($with_rest), 'CODE', 'test function for argument count check with rest compiles';
     is_deeply $with_rest->(1, 2, 3, 4), [1, 2, [3, 4]], 'valid call with optional rest receives correct arguments';
     is_deeply $with_rest->(1, 2), [1, 2, []], 'valid call without optional rest receives correct arguments';
@@ -430,9 +436,9 @@ sub T500_arg_count_with_rest: Tests {
 }
 
 sub T510_arg_count_fixed: Tests {
-    my $self = self;
+    my $self = shift;
 
-    my $without_rest = self->run('(lambda (a b) (list a b))');
+    my $without_rest = $self->run('(lambda (a b) (list a b))');
     is ref($without_rest), 'CODE', 'test function for argument count check without rest compiles';
     is_deeply $without_rest->(1, 2), [1, 2], 'valid call to function without rest receives correct arguments';
 
@@ -444,8 +450,8 @@ sub T510_arg_count_fixed: Tests {
 }
 
 sub T600_undefined_arguments: Tests {
-    my $self   = self;
-    my $lambda = self->run('(lambda (foo optional: bar) (list foo bar))');
+    my $self   = shift;
+    my $lambda = $self->run('(lambda (foo optional: bar) (list foo bar))');
 
     lives_ok {
         is_deeply $lambda->(undef, undef), [undef, undef], 'undefined mandatory and optional arguments return correct values';
@@ -456,12 +462,12 @@ sub T600_undefined_arguments: Tests {
 }
 
 sub T800_chunks: Tests {
-    my $self = self;
+    my $self = shift;
 
     for my $name (qw( chunk λ… )) {
 
-        is ref(self->run("($name 23)")), 'CODE', "$name builds successful code reference";
-        is self->run("(($name 23))"), 23, "$name returns evaluated body expression on call";
+        is ref($self->run("($name 23)")), 'CODE', "$name builds successful code reference";
+        is $self->run("(($name 23))"), 23, "$name returns evaluated body expression on call";
 
         throws_ok { $self->run("($name)") } 'Script::SXC::Exception', "$name without body throws exception";
         like $@, qr/$name/, qq(error message contains "$name");
@@ -470,17 +476,17 @@ sub T800_chunks: Tests {
 }
 
 sub T850_arrow_function: Tests {
-    my $self = self;
+    my $self = shift;
 
-    is ref(self->run('(-> 23)')), 'CODE', '-> builds code reference';
-    is self->run('((-> _) 23)'), 23, '-> binds _ correctly';
-    is self->run('((-> (+ _ 10)) 13)'), 23, '-> built function returns correct result';
+    is ref($self->run('(-> 23)')), 'CODE', '-> builds code reference';
+    is $self->run('((-> _) 23)'), 23, '-> binds _ correctly';
+    is $self->run('((-> (+ _ 10)) 13)'), 23, '-> built function returns correct result';
 
     throws_ok { $self->run("(->)") } 'Script::SXC::Exception', "-> without body throws exception";
     like $@, qr/->/, qq(error message contains "->");
     like $@, qr/missing/i, 'error message contains "missing"';
 
-    is_deeply self->run('(map (list 2 3 4) (-> (* _ 2)))'), [4, 6, 8], '-> in combination with map returns correct list';
+    is_deeply $self->run('(map (list 2 3 4) (-> (* _ 2)))'), [4, 6, 8], '-> in combination with map returns correct list';
 }
 
 1;

@@ -64,4 +64,19 @@ CLASS->add_procedure('apply',
     },
 );
 
+CLASS->add_inliner('apply!',
+    via => method (:$compiler, :$env, :$name, :$error_cb, :$exprs, :$symbol) {
+        CLASS->check_arg_count($error_cb, $name, $exprs, min => 2, max => 2);
+        my ($var, $apply) = @$exprs;
+        return $symbol->new_item_with_source('List', { contents => [
+            $symbol->new_item_with_source('Builtin', { value => 'set!' }),
+            $var,
+            $symbol->new_item_with_source('List', { contents => [
+                $apply,
+                $var,
+            ]}),
+        ]})->compile($compiler, $env);
+    },
+);
+
 1;

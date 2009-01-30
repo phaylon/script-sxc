@@ -1,8 +1,8 @@
 package Script::SXC::Token::DirectTransform;
 use Moose::Role;
+use MooseX::Method::Signatures;
 
 use namespace::clean -except => 'meta';
-use Method::Signatures;
 
 #requires qw( tree_item_class );
 

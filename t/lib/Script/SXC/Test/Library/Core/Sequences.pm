@@ -1,7 +1,6 @@
 package Script::SXC::Test::Library::Core::Sequences;
 use strict;
 use parent 'Script::SXC::Test::Library::Core';
-use self;
 use CLASS;
 use Test::Most;
 use Data::Dump qw( dump );
@@ -13,11 +12,11 @@ sub callstack_count {
 }
 
 sub T050_sequences: Tests {
-    my $self = self;
+    my $self = shift;
 
     # begin
-    is self->run('(begin 5 4 3 2)'), 2, 'begin sequence returns last value';
-    {   is ref(my $lambda = self->run('(define foo (lambda (t) (begin (define r (t)) (if r (foo t) ()))))')), 
+    is $self->run('(begin 5 4 3 2)'), 2, 'begin sequence returns last value';
+    {   is ref(my $lambda = $self->run('(define foo (lambda (t) (begin (define r (t)) (if r (foo t) ()))))')), 
             'CODE', 
             'begin sequence with tailcall compiles';
         my $old;

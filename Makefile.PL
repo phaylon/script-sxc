@@ -60,10 +60,13 @@ requires        'Sub::Install',                 '0.924';
 requires        'Scalar::Util',                 '1.19';
 requires        'Term::ReadLine',               '1.03';
 requires        'Time::HiRes',                  '1.9711';
+requires        'File::ShareDir',               '1.00';
 
 no_index        directory   => 'examples';
 
 install_script  'script/sxc';
 install_script  'script/sxc.pl';
+
+install_share   'share';
 
 WriteAll;
