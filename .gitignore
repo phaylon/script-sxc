@@ -4,3 +4,25 @@
 
 # VIM project files
 *.vim
+
+# root directory files
+/*.txt
+/*.pl
+/Makefile*
+/*.sx
+/*.sxc
+
+# except
+!Makefile.PL
+
+# M:I and builds
+inc/
+blib/
+cover_db/
+pm_to_blib
+test.out
+META.yml
+
+# hidden
+.*
+!.gitignore
