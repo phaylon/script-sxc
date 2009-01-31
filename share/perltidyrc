@@ -1,0 +1,15 @@
+#--quiet
+--maximum-line-length=120
+--indent-columns=2
+#--continuation-indentation=1
+--paren-tightness=2
+--square-bracket-tightness=2
+--closing-token-indentation=0
+-nicb
+--opening-brace-always-on-right
+--opening-token-right
+--vertical-tightness=1
+--vertical-tightness-closing=1
+--stack-opening-tokens
+--stack-closing-tokens
+--nibc # don't indent comments
