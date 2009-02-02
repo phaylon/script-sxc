@@ -233,6 +233,7 @@ method run {
             }
 
             # normal error
+            no warnings;
             warn "\n# compiled result:\n$body\n";
             warn "An error occured during $stage:\n\t$e\n";
             do { chomp(my $l = $line); $self->add_to_history($l) };

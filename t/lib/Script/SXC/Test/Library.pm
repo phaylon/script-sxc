@@ -38,6 +38,27 @@ sub tidy {
     return $result;
 }
 
+sub sx_compile_tree {
+    my ($self, $content) = @_;
+
+    my $tree = $self->sx_build_stream($content);
+    my $compiled = $self->compiler->compile_tree($tree);
+    isa_ok $compiled, CompiledClass;
+    explain 'compiled result: ', $compiled;
+
+    return $compiled;
+}
+
+sub sx_build_stream {
+    my ($self, $content) = @_;
+
+    my $tree = $self->reader->build_stream(\$content)->transform;
+    isa_ok $tree, TreeClass;
+    explain 'built tree: ', $tree;
+
+    return $tree;
+}
+
 sub run {
     my ($self, $content) = @_;
 

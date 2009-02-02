@@ -4,16 +4,32 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose qw( Str );
 
-use Data::Dump qw( pp );
+use Scalar::Util qw( blessed );
+use Data::Dump   qw( pp );
 
 use Script::SXC::lazyload
     ['Script::SXC::Runtime::Symbol', 'RuntimeSymbol'],
     ['Script::SXC::Compiled::Value', 'CompiledValue'];
 
+use CLASS;
 use namespace::clean -except => 'meta';
+use overload
+    'eq'     => 'is_equal',
+    fallback => 1;
 
 with 'Script::SXC::Tree::Item';
 with 'Script::SXC::Tree::SingleValue';
+
+method is_equal ($item, $is_reversed) {
+
+    return undef
+        unless defined $item;
+
+    return $item->value eq $self->value
+        if blessed($item) and $item->isa(CLASS);
+
+    return $item eq $self->value;
+}
 
 method compile (Object $compiler, Object $env, Bool :$fc_inline_optimise?) {
     $fc_inline_optimise //= 1;

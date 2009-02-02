@@ -11,6 +11,7 @@ use namespace::clean -except => 'meta';
 extends 'Script::SXC::Library';
 
 CLASS->add_delegated_items({
+
     'Script::SXC::Library::Core::Operators'     => [qw( or and err def not ~~ )],
 
     'Script::SXC::Library::Core::Sequences'     => [qw( begin )],
@@ -52,6 +53,9 @@ CLASS->add_delegated_items({
 
     'Script::SXC::Library::Core::Packages'
         => [qw( require define-package )],
+
+    'Script::SXC::Library::Core::Syntax'
+        => [qw( define-syntax syntax-rules )],
 });
 
 CLASS->add_inliner('builtin', via => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {
