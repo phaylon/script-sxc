@@ -31,11 +31,15 @@ method is_equal ($item, $is_reversed) {
     return $item eq $self->value;
 }
 
+method find_associated_item ($compiler, $env) {
+    return $env->find_variable($self);
+}
+
 method compile (Object $compiler, Object $env, Bool :$fc_inline_optimise?) {
     $fc_inline_optimise //= 1;
 
     # find var in environment
-    my $item = $env->find_variable($self);
+    my $item = $self->find_associated_item($compiler, $env);
 
     # wants a compiler
     if ($item->does('Script::SXC::Library::Item::AcceptCompiler')) {

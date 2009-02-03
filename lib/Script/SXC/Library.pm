@@ -376,33 +376,40 @@ method call_in_other_library($class: Str $library!, Str $proc!, ArrayRef $args =
 };
 
 method add ($class: $name!, Object $item!) {
-    #use Data::Dump qw( pp );
-    #warn "AFTER ADD: " . pp(\%Items) . "\n";
     $class->_items->{ $_ } = $item
         for ref($name) ? @$name : $name;
     return $item;
 };
 
+method create_object (Str $lib: Str $class, HashRef $attrs, Str|ArrayRef $name) {
+    my %attrs = %$attrs;
+
+    $name = $name->[0] if ref $name;
+    if ($class->does('Script::SXC::Library::Item::Location')) {
+        @attrs{qw( library name )} = ($lib, $name);
+    }
+
+    return $class->new(%attrs);
+}
+
 method add_procedure ($class: $name!, Method :$firstclass!, Method :$inliner, :$setter?, :$inline_fc?, ArrayRef :$runtime_req?, :$runtime_lex) {
     $runtime_lex //= {};
-    my $proc = Procedure->new(
+    my $proc = $class->create_object(Procedure, {
         firstclass  => $firstclass,
         ($inliner     ? (inliner             => $inliner)     : ()),
         ($setter      ? (setter              => $setter)      : ()),
         ($inline_fc   ? (firstclass_inlining => $inline_fc)   : ()),
         ($runtime_req ? (runtime_req         => $runtime_req) : ()),
         ($runtime_lex ? (runtime_lex         => $runtime_lex) : ()),
-        library     => $class,
-        name        => (ref($name) ? $name->[0] : $name),
-    );
+    }, $name);
     $class->add($_, $proc)
         for (ref($name) ? @$name : $name);
 };
 
 method add_inliner ($class: $name!, :$via!) {
-    my $inliner = Inline->new(
+    my $inliner = $class->create_object(Inline, {
         inliner     => $via,
-    );
+    }, $name);
     return $class->add($name, $inliner);
 };
 

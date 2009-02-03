@@ -190,7 +190,9 @@ method build_scope_with_definitions
     );
 }
 
-method find_env_for_variable (Str $name!) {
+method find_env_for_variable ($name!) {
+    $name = $name->value 
+        if ref $name;
 #    warn "CHECKING ENV $self\n";
 
     # search locally

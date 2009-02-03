@@ -35,6 +35,4 @@ method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Objec
     return Capture->new(value => $symbol->value);
 }
 
-with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
-
 1;

@@ -21,24 +21,13 @@ with 'Script::SXC::TypeHinting';
 with 'Script::SXC::Library::Item::Inlining';
 with 'Script::SXC::CompileToSelf';
 with 'Script::SXC::ProvidesSetter';
+with 'Script::SXC::Library::Item::Location';
 
 method build_default_typehint { 'code' }
 
 has firstclass => (
     is          => 'ro',
     isa         => Method,
-    required    => 1,
-);
-
-has name => (
-    is          => 'ro',
-    isa         => Str,
-    required    => 1,
-);
-
-has library => (
-    is          => 'ro',
-    isa         => Str,
     required    => 1,
 );
 

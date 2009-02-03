@@ -31,6 +31,9 @@ CLASS->add_inliner('define-syntax', via => method (:$compiler, :$env, :$name, :$
     my $compiled_transformer = $transformer->compile($compiler, $compiler->top_environment);
     $error_cb->('invalid_syntax_transformer', message => "$name expected its second argument to return a compiled syntax transformer")
         unless $compiled_transformer->does(SyntaxTransformRole);
+
+    $env->set_variable($syn_name->value, $compiled_transformer);
+    return $compiled_transformer;
 });
 
 CLASS->add_inliner('syntax-rules', via => method (:$compiler, :$env, :$name, :$error_cb, :$exprs, :$symbol) {

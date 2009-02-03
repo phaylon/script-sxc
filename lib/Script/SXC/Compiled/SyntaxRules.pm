@@ -5,9 +5,13 @@ use MooseX::Method::Signatures;
 use MooseX::Types::Moose    qw( ArrayRef Str );
 
 use Script::SXC::lazyload
+   ['Script::SXC::Compiled::Value', 'CompiledValue'],
     'Script::SXC::Compiled::SyntaxRules::Pattern',
     'Script::SXC::Compiled::SyntaxRules::Transformer',
     'Script::SXC::Compiled::SyntaxRules::Rule';
+
+use Data::Dump      qw( pp );
+use List::MoreUtils qw( first_value );
 
 use constant SymbolClass         => 'Script::SXC::Tree::Symbol';
 use constant ListClass           => 'Script::SXC::Tree::List';
@@ -15,7 +19,8 @@ use constant ListClass           => 'Script::SXC::Tree::List';
 use namespace::clean -except => 'meta';
 
 with 'Script::SXC::Compiled::SyntaxTransform';
-with 'Script::SXC::SourcePosition';
+
+has '+inliner' => (builder => 'build_inliner');
 
 has literals => (
     metaclass   => 'Collection::Array',
@@ -49,7 +54,30 @@ has rules => (
     },
 );
 
-method render { "(undef)" }
+method find_matching_rule (ArrayRef $exprs) {
+
+    for my $rule (@{ $self->rules }) {
+        my $captures = $rule->match($exprs)
+            or next;
+#        say "rule captures $captures";
+        return( $rule, $captures );
+    }
+
+    return undef, undef;
+}
+
+method build_inliner {
+    return method (Object $invocant: Object :$compiler, Object :$env, ArrayRef :$exprs, Object :$symbol, :$name) {
+
+        my ($rule, $captures) = $self->find_matching_rule($exprs);
+        $symbol->throw_parse_error(invalid_syntax_form => "No matching syntax-rule found in $name")
+            unless $rule;
+
+        return $rule->build_tree($compiler, $env, $captures)->compile($compiler, $env);
+    };
+}
+
+method render { return pp "$self" }
 
 method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $literals, ArrayRef $rules, Object $symbol, Str $name) {
     

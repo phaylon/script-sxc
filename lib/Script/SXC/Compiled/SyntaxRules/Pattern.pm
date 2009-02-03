@@ -6,6 +6,7 @@ use MooseX::Method::Signatures;
 use MooseX::Types::Moose    qw( ArrayRef Object );
 
 use constant SequenceMatchingRole   => 'Script::SXC::Compiled::SyntaxRules::Pattern::SequenceMatching';
+use constant ListClass              => 'Script::SXC::Tree::List';
 
 use namespace::clean -except => 'meta';
 
@@ -32,5 +33,8 @@ method new_from_uncompiled (Str $class: Object $compiler, Object $env, ArrayRef 
 
 with SequenceMatchingRole;
 with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
+
+has '+container_class'   => (default => ListClass);
+has '+alternate_reftype' => (default => 'ARRAY');
 
 1;

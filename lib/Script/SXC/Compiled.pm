@@ -82,7 +82,7 @@ my $EvalCount = 0;
 method get_full_body {
     my $body = $self->get_body;     # must come first to populate required packages, etc.
     return join ';', 
-        sprintf('package Script::SXC::Compiled::EVAL%d', $EvalCount),
+        sprintf('package Script::SXC::Compiled::EVAL%d', $EvalCount++),
         ( $self->use_strict   ? 'use strict'          : 'no strict' ),
         ( $self->use_warnings ? 'use warnings'        : 'no warnings' ),
         'use 5.010',

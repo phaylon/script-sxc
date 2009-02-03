@@ -60,7 +60,8 @@ sub sx_build_stream {
 }
 
 sub run {
-    my ($self, $content) = @_;
+    my ($self, @contents) = @_;
+    my $content = join "\n", @contents;
 
     my $tree = $self->reader->build_stream(\$content)->transform;
     isa_ok $tree, TreeClass;

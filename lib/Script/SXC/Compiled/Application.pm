@@ -199,12 +199,15 @@ method new_from_uncompiled
         and $compiled_invocant->inliner
         and ( not($compiled_invocant->can('firstclass')) or not($options->{first_class}) )
     ) {
-#        warn "INLINING\n";
+        #warn "INLINING\n";
         my $inliner  = $compiled_invocant->inliner;
         my $compiled = $inliner->($compiled_invocant, 
             compiler            => $compiler, 
             env                 => $env, 
-            name                => ($invocant->can('value') ? $invocant->value : $invocant->name), 
+            name                => (
+                   ( $invocant->can('value') ? $invocant->value : undef )
+                || ( $invocant->can('name')  ? $invocant->name  : q{<name-not-available>} )
+            ),
             exprs               => [@$arguments],
             symbol              => $invocant,
             allow_definitions   => $options->{allow_definitions},
@@ -227,6 +230,7 @@ method new_from_uncompiled
                 $exception->throw(type => $type, message => $message, $source->source_information, %other_args);
             },
         );
+        #warn pp "COMPILED $compiled\n";
 
         return $return_type eq 'scalar' 
             ? $compiled 
@@ -307,7 +311,7 @@ method render {
         $body .= sprintf 'my %s = %s; ',
             $var_invocant->render,
             $self->render_invocant
-          unless $self->render_invocant eq $var_invocant->render;
+          unless $self->invocant eq $var_invocant;
 
         my @apply_cases = (
             [ sprintf('ref(%s) eq q(CODE)',        
