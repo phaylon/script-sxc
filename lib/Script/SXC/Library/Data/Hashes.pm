@@ -100,7 +100,7 @@ CLASS->add_procedure('hash-ref',
             CompiledTypeCheck->new(
                 expression  => $hash->compile($compiler, $env),
                 type        => 'hash',
-                source_item => $hash,
+                source_item => $symbol,
                 message     => "hash-ref setter needs a hash as first and a key as second argument",
             )->render,
             $key->compile($compiler, $env, to_string => 1)->render,

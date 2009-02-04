@@ -88,7 +88,7 @@ method render {
     my $anon          = Variable->new_anonymous('typecheck');
     my $anon_rendered = $anon->render;
 
-    return sprintf('(do { my %s = %s; unless(%s) { require %s; %s->throw_to_caller(%s) } %s })',
+    return sprintf('(do { my %s = %s; unless(%s) { require %s; %s->throw(%s) } %s })',
         $anon_rendered,
         $self->render_expression,
         do { (my $template = $TypeTemplate{ $self->type }) =~ s/\%s/$anon_rendered/g; $template },

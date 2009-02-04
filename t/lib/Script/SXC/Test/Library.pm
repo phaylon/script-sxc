@@ -62,6 +62,7 @@ sub sx_build_stream {
 sub run {
     my ($self, @contents) = @_;
     my $content = join "\n", @contents;
+    $content =~ s/(?:^\s+|\s+$)//gsm;
 
     my $tree = $self->reader->build_stream(\$content)->transform;
     isa_ok $tree, TreeClass;

@@ -157,4 +157,89 @@ sub T100_syntax_rules_api: Tests {
     }
 }
 
+sub T200_syntax_rules_usage: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax calc
+          (syntax-rules (sum of and half square)
+            [(calc sum of <x> and <y>)
+             (+ <x> <y>)]
+            [(calc sum of <x> and <y> and <z>)
+             (+ <x> <y> <z>)]
+            [(calc half of <x>)
+             (/ <x> 2)]
+            [(calc square of <x>)
+             (* <x> <x>)]))
+    #;
+    
+    is $self->run($PRE, '(calc sum of 7 and 9)'), 16, 'first rule transforms correctly';
+    is $self->run($PRE, '(calc sum of 7 and 9 and 10)'), 26, 'second rule transforms correctly';
+    is $self->run($PRE, '(calc half of 10)'), 5, 'third rule transforms correctly';
+    is $self->run($PRE, '(calc square of 7)'), 49, 'fourth rule transforms correctly';
+
+    throws_ok { $self->run($PRE, '(calc gajillions of numbers)') } 'Script::SXC::Exception::ParseError',
+        'no matching rule leads to parse error being thrown';
+    like $@, qr/rule/i, 'error message contains "rule"';
+}
+
+sub T201_syntax_rules_nested: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax add
+          (syntax-rules (to)
+            ((add <x> to <y>)
+             (+ <x> <y>))))
+    #;
+    
+    is $self->run($PRE, '(add (add 2 to 3) to (add 4 to 5))'), 14, 'nested syntax-rules inlinings do not collide';
+}
+
+sub T202_syntax_rules_errors: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax fetch
+          (syntax-rules (from)
+            ((fetch f from h)
+             ((lambda (data)
+                (hash-ref data f))
+              h))))
+    #;
+    
+    throws_ok { $self->run($PRE, '(fetch :foo from 23)') } 'Script::SXC::Exception';
+    like $@, qr/hash/i, 'error message is the expected one';
+#    is $@->line_number, 5, 'error message has line number from syntax-rules definition';
+}
+
+sub T203_syntax_rules_gensym: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax foo
+          (syntax-rules ()
+            [(foo <expr>)
+             (let [(val <expr>)]
+               (* val val))]))
+    #;
+
+    is $self->run($PRE, '(let [(n 3)] (foo (apply! n ++)))'), 16, 'generated symbols allow value definition';
+}
+
+sub T204_syntax_rules_hashes: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax my-map-do
+          (syntax-rules ()
+            [(my-map-do (<var> <keyer> <ls>) <expr>)
+             (map <ls> (lambda (<var>) { (<keyer> <var>) <expr> }))]))
+    #;
+    
+    is_deeply $self->run($PRE, '(my-map-do (foo ++ (list 3 4 5)) { result: foo })'),
+        [{ 4 => { result => 3 } }, { 5 => { result => 4 } }, { 6 => { result => 5 } }],
+        'hash construction in captured and template build correctly';
+}
+
 1;
