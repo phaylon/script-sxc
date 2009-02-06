@@ -4,7 +4,7 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
 use MooseX::Method::Signatures;
-use MooseX::Types::Moose    qw( HashRef ArrayRef Object );
+use MooseX::Types::Moose    qw( HashRef ArrayRef Object Int );
 
 use constant SequenceMatchingRole   => 'Script::SXC::Compiled::SyntaxRules::Pattern::SequenceMatching';
 use constant ListClass              => 'Script::SXC::Tree::List';
@@ -38,6 +38,22 @@ has capture_objects => (
         'get'           => 'get_capture_object',
     },
 );
+
+has greedy_max_depth => (
+    is              => 'rw',
+    isa             => Int,
+    required        => 1,
+    default         => 0,
+);
+
+method update_greedy_max_depth (Int $new) {
+
+    # only set the depth if it is larger than the current value
+    $self->greedy_max_depth($new) and return 1
+        if $new > $self->greedy_max_depth;
+
+    return undef;
+}
 
 method new_from_uncompiled (Str $class: Object $compiler, Object $env, ArrayRef $items, Object $sr) {
 

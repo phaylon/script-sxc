@@ -24,4 +24,6 @@ method match ($item, Object $ctx) {
 
 with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
 
+has '+allow_greedy' => (default => 0);
+
 1;

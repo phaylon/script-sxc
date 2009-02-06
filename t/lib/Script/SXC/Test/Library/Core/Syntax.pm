@@ -202,18 +202,122 @@ sub T201_syntax_rules_nested: Tests {
 sub T202_syntax_rules_errors: Tests {
     my $self = shift;
 
-    my $PRE = q#
-        (define-syntax fetch
-          (syntax-rules (from)
-            ((fetch f from h)
-             ((lambda (data)
-                (hash-ref data f))
-              h))))
-    #;
+    {   my $PRE = q#
+            (define-syntax fetch
+              (syntax-rules (from)
+                ((fetch f from h)
+                 ((lambda (data)
+                    (hash-ref data f))
+                  h))))
+        #;
+        
+        throws_ok { $self->run($PRE, '(fetch :foo from 23)') } 'Script::SXC::Exception';
+        like $@, qr/hash/i, 'error message is the expected one';
+    }
+
+    throws_ok { $self->run('(define-syntax "foo" (syntax-rules () ((foo) 23)))') } 'Script::SXC::Exception::ParseError',
+        'non-symbol as syntax container for define-syntax throws parse error';
+    like $@, qr/define-syntax/, 'error message contains "define-syntax"';
+    like $@, qr/symbol/i, 'error message contains "symbol"';
+
+    throws_ok { $self->run('(define-syntax 1 2 3)') } 'Script::SXC::Exception',
+        'more than two arguments to define-syntax throws exception';
+    like $@, qr/define-syntax/, 'error message contains "define-syntax"';
+    like $@, qr/too many/i, 'error message contains "too many"';
+
+    throws_ok { $self->run('(define-syntax foo)') } 'Script::SXC::Exception',
+        'single argument to define-syntax throws exception';
+    like $@, qr/define-syntax/, 'error message contains "define-syntax"';
+    like $@, qr/missing/i, 'error message contains "missing"';
+
+    throws_ok { $self->run('(define-syntax foo 23)') } 'Script::SXC::Exception::ParseError',
+        'non-transformer as second argument to define-syntax throws parse error';
+    like $@, qr/define-syntax/, 'error message contains "define-syntax"';
+    like $@, qr/compiled syntax transformer/i, 'error message contains "compiled syntax transformer"';
+
+    my $FOO = sub { $self->run(sprintf '(define-syntax foo (syntax-rules (lit1 lit2) %s)) %s', shift, join ' ', @_) };
+
+    throws_ok { $FOO->('((foo 23 ...) 23)') } 'Script::SXC::Exception::ParseError',
+        'trying to greedify a number throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/unable to greedify/i, 'error message contains "unable to greedify"';
+    like $@, qr/number/i, 'error message contains "number"';
+
+    throws_ok { $FOO->('((foo lit1 ...) 23)') } 'Script::SXC::Exception::ParseError',
+        'trying to greedify a literal throws a parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/unable to greedify/i, 'error message contains "unable to greedify"';
+    like $@, qr/literal/i, 'error message contains "literal"';
     
-    throws_ok { $self->run($PRE, '(fetch :foo from 23)') } 'Script::SXC::Exception';
-    like $@, qr/hash/i, 'error message is the expected one';
-#    is $@->line_number, 5, 'error message has line number from syntax-rules definition';
+    throws_ok { $FOO->('((foo ...) 23)') } 'Script::SXC::Exception::ParseError',
+        'ellipsis without previous pattern throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/ellipsis/i, 'error message contains "ellipsis"';
+
+    throws_ok { $FOO->('((foo <x> ... <y>) 23)') } 'Script::SXC::Exception::ParseError',
+        'pattern after ellipsis throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/ellipsis/i, 'error message contains "ellipsis"';
+    like $@, qr/last/i, 'error message contains "last"';
+
+    throws_ok { $FOO->('((foo <x>) (+ <x> ...))') } 'Script::SXC::Exception::ParseError',
+        'ellipsis in template but not in transformer throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/level/i, 'error message contains "level"';
+
+    throws_ok { $FOO->('((foo <x> ...) (+ (* <x> ...) ...))') } 'Script::SXC::Exception::ParseError',
+        'more iteration than greedy levels throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/level/i, 'error message contains "level"';
+
+    throws_ok { $FOO->('((foo <x> ...) (+ 17 ...))') } 'Script::SXC::Exception::ParseError',
+        'trying to iterate over a constant in template throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/placement/i, 'error message contains "placement"';
+    like $@, qr/ellipsis/i, 'error message contains "ellipsis"';
+    like $@, qr/number/i, 'error message contains constant type';
+
+    throws_ok { $FOO->('((foo <x> ...) (+ <qux> ...))') } 'Script::SXC::Exception::ParseError',
+        'trying to iterate over a generated symbol in template throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/placement/i, 'error message contains "placement"';
+    like $@, qr/ellipsis/i, 'error message contains "ellipsis"';
+    like $@, qr/symbol/i, 'error message contains symbol type';
+
+    throws_ok { $FOO->('((foo <x> <x>) 23)') } 'Script::SXC::Exception::ParseError',
+        'double usage of same capture symbol in pattern throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/<x>/, 'error message contains capture symbol';
+    like $@, qr/capture/i, 'error message contains "capture"';
+    like $@, qr/once/i, 'error message contains "once"';
+
+    throws_ok { $FOO->('((foo <x>) (doesnotreallyexist <x>))', '(foo 23)') } 'Script::SXC::Exception::UnboundVar',
+        'generated symbol that was not used in definition first throws parse error';
+    like $@->name, qr/doesnotreallyexist/, 'variable name contains original symbol name';
+    like $@->name, qr/^#gensym~.+#$/, 'variable name is in correct gensym format';
+
+    throws_ok { $FOO->('(() 23)') } 'Script::SXC::Exception::ParseError',
+        'pattern without contents throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/pattern/i, 'error message contains "pattern"';
+
+    throws_ok { $FOO->('(foo 23)') } 'Script::SXC::Exception::ParseError',
+        'pattern with non-list as rule throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/pattern/i, 'error message contains "pattern"';
+    like $@, qr/list/i, 'error message contains "list"';
+
+    throws_ok { $FOO->('((foo) 2 3)') } 'Script::SXC::Exception::ParseError',
+        'rule with more than two expressions throws parse error';
+    like $@, qr/syntax-rules/, 'error message contains "syntax-rules"';
+    like $@, qr/pattern/i, 'error message contains "pattern"';
+    like $@, qr/two/i, 'error message contains "two"';
+
+
+
+
+
+#    exit;
 }
 
 sub T203_syntax_rules_gensym: Tests {
@@ -243,6 +347,74 @@ sub T204_syntax_rules_hashes: Tests {
     is_deeply $self->run($PRE, '(my-map-do (foo ++ (list 3 4 5)) { result: foo })'),
         [{ 4 => { result => 3 } }, { 5 => { result => 4 } }, { 6 => { result => 5 } }],
         'hash construction in captured and template build correctly';
+
+    my $PRE2 = q#
+        (define-syntax extract-foo
+          (syntax-rules ()
+            ((_ (foo)) (list "list" foo))
+            ((_ {foo}) (list "hash" foo))))
+    #;
+    is_deeply $self->run($PRE2, '(list (extract-foo (23)) (extract-foo {42}))'),
+        [[list => 23], [hash => 42]],
+        'syntax-rules successfully distinguishes between lists and hashes in templates';
+}
+
+sub T205_syntax_rules_constants: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax foo
+          (syntax-rules ()
+            ((foo "1") "string-1")
+            ((foo "2") "string-2")
+            ((foo 1) "int-1")
+            ((foo 2) "int-2")))
+    #;
+    is $self->run($PRE, '(foo "1")'), 'string-1', 'first string dispatches to correct rule';
+    is $self->run($PRE, '(foo "2")'), 'string-2', 'second string dispatches to correct rule';
+    is $self->run($PRE, '(foo 1)'), 'int-1', 'first integer dispatches to correct rule';
+    is $self->run($PRE, '(foo 2)'), 'int-2', 'second integer dispatches to correct rule';
+}
+
+sub T206_syntax_rules_ellipsis: Tests {
+    my $self = shift;
+
+    {   my $PRE = q#
+            (define-syntax foo
+              (syntax-rules ()
+                ((foo <x> <y> ...)
+                 (+ <x> (+ <y> 1) ...))))
+        #;
+        is $self->run($PRE, '(foo 3 4 5 6)'), (3 + ((4 + 1) + (5 + 1) + (6 + 1))),
+            'single level ellipsis captures and builds correctly';
+    }
+
+    {   my $PRE = q#
+            (define-syntax foo
+              (syntax-rules ()
+                ((foo (<name> <item> ...) ...)
+                 (merge {} {} { <name> (+ (+ <item> 1) ...) } ...))))
+        #;
+        is_deeply $self->run($PRE, '(foo (x: 2 3 4) (y: 3 4 5))'),
+            { x => 12, y => 15 },
+            'multi level ellipsis captures and builds correctly';
+        is_deeply $self->run($PRE, '(list (foo (x:)) (foo))'),
+            [{ x => 0 }, {}],
+            'multi level ellipsis can iterate on zero items';
+    }
+
+    {   my $PRE = q#
+            (define-syntax foo
+              (syntax-rules ()
+                ((foo (<name> <init> <apply> <arg> ...) ...)
+                 (let ((<name> <init>) ...)
+                   (list (<apply> <name> <arg> ...)
+                         ...)))))
+        #;
+        is_deeply $self->run($PRE, '(foo (bar 23 list 2 3 4) (baz 17 ++))'),
+            [[23, 2, 3, 4], 18],
+            'multi level ellipsis can iterate multiple times';
+    }
 }
 
 1;

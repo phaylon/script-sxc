@@ -31,7 +31,7 @@ around transform_to_tree => sub ($next, $self, $transformer, $compiler, $env, $c
 
     # calculate iteration parameters
     my $level = @$coordinates + 1;
-    my $count = $context->get_iteration_count_on_level($level);
+    my $count = $context->get_iteration_count_on_level($level) // 0;
 
     # iterate over the available indexes
     my @transformed;

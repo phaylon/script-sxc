@@ -24,6 +24,7 @@ requires qw(
 
 method transform (Object $compiler, Object $env, Object $item, Object $sr, Object $pattern, $greed_level) {
     $greed_level //= 0;
+    $pattern->update_greedy_max_depth($greed_level);
 
     # the pattern class depends on the input type
     my $pattern_class =
@@ -57,17 +58,17 @@ method transform_sequence (Object $compiler, Object $env, ArrayRef $seq, Object 
 
             # there shouldn't be anything left after the ellipsis
             if (@items) {
-                $ellipsis->throw_parse_error(invalid_syntax_ellipsis => "Ellipsis must be last element in pattern");
+                $ellipsis->throw_parse_error(invalid_syntax_ellipsis => "Ellipsis must be last element in syntax-rules pattern");
             }
 
             # transform the item into a subpattern
             $subpattern = $self->transform($compiler, $env, $item, $sr, $pattern, $greed_level + 1);
             
             # make sure we can make this subpattern greedy
-            unless ($subpattern->does(GreedyRole)) {
+            unless ($subpattern->does(GreedyRole) and $subpattern->allow_greedy) {
                 $item->throw_parse_error(
                     'invalid_syntax_ellipsis',
-                    sprintf 'Unable to greedify %s (result of %s)', ref($subpattern), ref($item),
+                    sprintf 'syntax-rules is unable to greedify %s (result of %s)', ref($subpattern), ref($item),
                 );
             }
 
@@ -78,6 +79,13 @@ method transform_sequence (Object $compiler, Object $env, ArrayRef $seq, Object 
 
         # not greedy
         else {
+
+            # ellipsis can't be at the beginning
+            if ($item->isa(SymbolClass) and $item eq '...') {
+                $item->throw_parse_error(invalid_syntax_ellipsis => "Ellipsis must follow greedifiable syntax-rules pattern");
+            }
+
+            # transform item as is
             $subpattern = $self->transform($compiler, $env, $item, $sr, $pattern, $greed_level);
         }
 

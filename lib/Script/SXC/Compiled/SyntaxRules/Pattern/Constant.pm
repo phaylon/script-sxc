@@ -40,4 +40,6 @@ method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $c
 
 with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
 
+has '+allow_greedy' => (default => 0);
+
 1;

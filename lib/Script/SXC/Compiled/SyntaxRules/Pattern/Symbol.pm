@@ -32,10 +32,16 @@ method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Objec
         return Literal->new(value => $symbol->value);
     }
 
-    # everything else is a capture
-    my $capture = Capture->new(value => $symbol->value);
+    # everything else is a capture, but can only be used once
+    if ($pattern->has_capture($symbol->value)) {
+        $symbol->throw_parse_error(
+            'invalid_syntax_capture',
+            sprintf "Capture '%s' in syntax-rules can only be used once", $symbol->value,
+        );
+    }
 
     # store capture meta information in pattern
+    my $capture = Capture->new(value => $symbol->value);
     $pattern->add_capture($symbol);
     $pattern->set_capture_object($symbol->value, $capture);
 

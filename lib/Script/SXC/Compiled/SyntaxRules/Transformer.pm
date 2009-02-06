@@ -89,6 +89,11 @@ method build_container_template (Object $compiler, Object $env, Object $containe
         # make the pattern iterative if the next item is an ellipsis
         if (@contents and $contents[0]->isa(SymbolClass) and $contents[0] eq '...') {
             $is_iterative = shift @contents;
+
+            # bark if the pattern didn't go that deep
+            unless ($it_level < $pattern->greedy_max_depth) {
+                $item->throw_parse_error(syntax_iteration_depth_mismatch => "syntax-rules pattern did not go deeper than $it_level level(s)");
+            }
         }
 
         # build template of this subexpression
@@ -99,7 +104,10 @@ method build_container_template (Object $compiler, Object $env, Object $containe
 
             # not everything can be used iteratively
             unless ($template->does(IterationRole)) {
-                $container->throw_parse_error(invalid_syntax_ellipsis => "Invalid placement of ellipsis in template");
+                $container->throw_parse_error(
+                    'invalid_syntax_ellipsis',
+                    sprintf 'Invalid placement of syntax-rules ellipsis in template after %s', ref($item),
+                );
             }
 
             # set iterative properties
@@ -145,6 +153,11 @@ method build_template (Object $compiler, Object $env, Object $expr, Object $sr, 
 
     # expression is a symbol
     elsif ($expr->isa(SymbolClass)) {
+
+        # if we reach an ellipsis with this, it is wrongly placed
+        if ($expr eq '...') {
+            $expr->throw_parse_error(invalid_syntax_ellipsis => "Invalid ellipsis placement in syntax-rules template");
+        }
 
         # capture symbols are replaced with inserting placeholders
         if (my $capture = $pattern->get_capture_object($expr->value)) {

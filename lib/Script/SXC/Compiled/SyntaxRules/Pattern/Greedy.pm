@@ -17,4 +17,10 @@ has greed_level => (
     default     => 0,
 );
 
+has allow_greedy => (
+    is          => 'rw',
+    isa         => Bool,
+    default     => 1,
+);
+
 1;

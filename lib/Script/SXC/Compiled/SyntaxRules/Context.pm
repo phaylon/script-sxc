@@ -1,24 +1,13 @@
 package Script::SXC::Compiled::SyntaxRules::Context;
+use 5.010;
 use Moose;
 use MooseX::Types::Moose        qw( Object Str HashRef ArrayRef );
 use MooseX::AttributeHelpers;
 use MooseX::Method::Signatures;
 
+use Data::Dump qw( pp );
+
 use signatures;
-
-sub apply_at ($store, $coord, $code) {
-
-    unless (@$coord) {
-        return $code->($store);
-    }
-
-    my $index = $coord->[-1];
-    my $ref   = @$coord == 1 ? \($store->[ $index ]) : $store->[ $index ];
-
-    @_ = ($ref, [ @{ $coord }[ 0 .. ($#$coord - 1) ] ], $code);
-    goto \&apply_at;
-}
-
 use namespace::clean -except => 'meta';
 
 has _capture_store => (
@@ -53,11 +42,16 @@ has rule => (
 );
 
 method build_tree (Object $compiler, Object $env) {
-    return $self->rule->build_tree($compiler, $env, $self);
+    my $tree = $self->rule->build_tree($compiler, $env, $self);
+    #pp $self->_iteration_value_counts;
+    #pp $self->_capture_store;
+    #pp $tree;
+    return $tree;
 }
 
 method compile_tree (Object $compiler, Object $env) {
-    return $self->build_tree($compiler, $env)->compile($compiler, $env);
+    my $tree = $self->build_tree($compiler, $env)->compile($compiler, $env);
+    return $tree;
 }
 
 method update_iteration_count (ArrayRef $coordinates) {
@@ -91,7 +85,7 @@ method set_capture_value (Str $name, ArrayRef $coordinates, $value) {
         # walk the structure up to one before the last index
         my $last  = pop @coord;
         for my $index (@coord) {
-            $store = $store->[ $index ];
+            $store = $store->[ $index ] //= [];
         }
 
         # set the value on that structure's index
