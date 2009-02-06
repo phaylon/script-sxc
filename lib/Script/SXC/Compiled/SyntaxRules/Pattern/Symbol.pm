@@ -35,6 +35,7 @@ method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Objec
     # everything else is a capture
     my $capture = Capture->new(value => $symbol->value);
 
+    # store capture meta information in pattern
     $pattern->add_capture($symbol);
     $pattern->set_capture_object($symbol->value, $capture);
 

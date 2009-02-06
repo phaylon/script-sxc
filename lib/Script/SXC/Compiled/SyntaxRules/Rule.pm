@@ -29,13 +29,9 @@ has transformer => (
 
 method match (ArrayRef $exprs) {
 
-    my $context = Context->new;
+    # create a context, but return it only if we have a match
+    my $context = Context->new(rule => $self);
     return $self->match_pattern($exprs, $context) ? $context : undef;
-
-#    my (%capture_values, @iteration_values);
-#    my $is_match = $self->match_pattern($exprs, \%capture_values, \@iteration_values);
-#    say 'captures ', join ', ', keys %capture_values;
-#    return $is_match ? \%capture_values : undef;
 }
 
 1;

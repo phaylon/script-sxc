@@ -77,8 +77,10 @@ method match ($item, Object $ctx, ArrayRef $coordinates = []) {
             return undef
                 unless @exprs;
 
+            # remove one expression
             my $expr = shift @exprs;
 
+            # stop here if the subpattern doesn't match
             return undef
                 unless $subpattern->match($expr, $ctx, $coordinates);
         }

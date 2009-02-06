@@ -41,12 +41,11 @@ has capture_objects => (
 
 method new_from_uncompiled (Str $class: Object $compiler, Object $env, ArrayRef $items, Object $sr) {
 
-    my $self  = $class->new;
-    my @items = @$items;
-    my @transformed;
-
+    # create a new pattern and transform its items
+    my $self = $class->new;
     $self->items($class->transform_sequence($compiler, $env, $items, $sr, $self, 0));
 
+    # return the new instance
     return $self;
 }
 

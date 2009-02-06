@@ -12,6 +12,7 @@ extends 'Script::SXC::Compiled::SyntaxRules::Pattern::Symbol';
 
 method match ($item, Object $ctx) {
 
+    # literals only match on symbols of the same value
     return undef
         unless blessed $item
            and $item->isa(SymbolClass)

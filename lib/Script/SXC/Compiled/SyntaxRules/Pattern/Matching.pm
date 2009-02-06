@@ -4,14 +4,16 @@ use Moose::Role;
 use MooseX::Method::Signatures;
 
 use Script::SXC::lazyload
-   ['Script::SXC::Compiled::SyntaxRules::Pattern::Symbol',  'SymbolPattern'],
-   ['Script::SXC::Compiled::SyntaxRules::Pattern::Hash',    'HashPattern'],
-   ['Script::SXC::Compiled::SyntaxRules::Pattern::List',    'ListPattern'];
+   ['Script::SXC::Compiled::SyntaxRules::Pattern::Symbol',   'SymbolPattern'],
+   ['Script::SXC::Compiled::SyntaxRules::Pattern::Hash',     'HashPattern'],
+   ['Script::SXC::Compiled::SyntaxRules::Pattern::Constant', 'ConstantPattern'],
+   ['Script::SXC::Compiled::SyntaxRules::Pattern::List',     'ListPattern'];
 
-use constant ListClass   => 'Script::SXC::Tree::List';
-use constant HashClass   => 'Script::SXC::Tree::Hash';
-use constant SymbolClass => 'Script::SXC::Tree::Symbol';
-use constant GreedyRole  => 'Script::SXC::Compiled::SyntaxRules::Pattern::Greedy';
+use constant ListClass    => 'Script::SXC::Tree::List';
+use constant HashClass    => 'Script::SXC::Tree::Hash';
+use constant SymbolClass  => 'Script::SXC::Tree::Symbol';
+use constant ConstantRole => 'Script::SXC::Tree::Constant';
+use constant GreedyRole   => 'Script::SXC::Compiled::SyntaxRules::Pattern::Greedy';
 
 use namespace::clean -except => 'meta';
 
@@ -23,15 +25,19 @@ requires qw(
 method transform (Object $compiler, Object $env, Object $item, Object $sr, Object $pattern, $greed_level) {
     $greed_level //= 0;
 
+    # the pattern class depends on the input type
     my $pattern_class =
-        (   $item->isa(ListClass)   ? ListPattern
-          : $item->isa(SymbolClass) ? SymbolPattern
-          : $item->isa(HashClass)   ? HashPattern
+        (   $item->isa(ListClass)     ? ListPattern
+          : $item->isa(SymbolClass)   ? SymbolPattern
+          : $item->isa(HashClass)     ? HashPattern
+          : $item->does(ConstantRole) ? ConstantPattern
           : undef );
 
+    # if we don't recognize it here, we can't turn it into a pattern
     $item->throw_parse_error(invalid_pattern_item => "Invalid pattern item")
         unless $pattern_class;
 
+    # return a new pattern object
     return $pattern_class->new_from_uncompiled($compiler, $env, $item, $sr, $pattern, $greed_level);
 }
 

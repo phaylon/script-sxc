@@ -46,13 +46,31 @@ has _iteration_value_counts => (
     },
 );
 
+has rule => (
+    is          => 'ro',
+    isa         => Object,
+    required    => 1,
+);
+
+method build_tree (Object $compiler, Object $env) {
+    return $self->rule->build_tree($compiler, $env, $self);
+}
+
+method compile_tree (Object $compiler, Object $env) {
+    return $self->build_tree($compiler, $env)->compile($compiler, $env);
+}
+
 method update_iteration_count (ArrayRef $coordinates) {
+
+    # can't update if there is no iteration on this
     return unless @$coordinates;
 
+    # calculate current count
     my $level   = @$coordinates;
     my $current = $self->get_iteration_count_on_level($level) // 0;
     my $new     = $coordinates->[-1] + 1;
 
+    # update count if new count is higher
     $self->set_iteration_count_on_level($level, $new > $current ? $new : $current);
     return 1;
 }

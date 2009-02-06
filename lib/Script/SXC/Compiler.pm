@@ -65,12 +65,18 @@ has inline_firstclass_procedures => (
 
 method compile_tree (Object $tree) {
 
-    $self->clear_top_environment if $self->cleanup_environment;
+    # cleanup environment unless disabled (e.g. for iterative evaluation)
+    $self->clear_top_environment 
+        if $self->cleanup_environment;
+
+    # the top compiled unit must be cleared
     $self->clear_top_compiled_unit;
 
+    # compile all expressions in the passed tree
     $self->add_compiled_expression($self->compile_expression($_, $self->top_environment))
         for @{ $tree->contents };
 
+    # return the compiled unit
     return $self->top_compiled_unit;
 }
 
@@ -126,6 +132,7 @@ method quote_tree (Object $tree, Object $env, Bool :$allow_unquote) {
 
 method compile_optimized_sequence (Object $env!, ArrayRef $exprs!, %opt) {
 
+    # compile all expressions but enable tailcalls on the last one
     my $cnt = 0;
     return [ map {
         $cnt++;

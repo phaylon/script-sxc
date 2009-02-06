@@ -134,15 +134,15 @@ sub T100_syntax_rules_api: Tests {
         {   say '# transforming first syntax-rule';
             my $ls = $self->sx_build_stream('(3 to 5)')->contents->[0];
 
-            my ($rule, $ctx) = $sr->find_matching_rule([$ls]);
-            isa_ok $rule, RuleClass;
+            my $ctx = $sr->find_matching_rule([$ls]);
             isa_ok $ctx, ContextClass, 'match result is context object';
+            isa_ok $ctx->rule, RuleClass;
             ok $ctx->has_capture_store_for('x'), 'captures contain first capture name';
             ok $ctx->has_capture_store_for('y'), 'captures contain second capture name';
             isa_ok $ctx->get_capture_store_for('x'), NumberClass;
             isa_ok $ctx->get_capture_store_for('y'), NumberClass;
 
-            my $tree = $rule->build_tree($self->compiler, $self->compiler->top_environment, $ctx);
+            my $tree = $ctx->build_tree($self->compiler, $self->compiler->top_environment);
             isa_ok $tree, ListClass;
 #            exit;
             is $tree->content_count, 3, 'transformed expression has correct number of items';

@@ -16,7 +16,7 @@ method match_regex {
 method build_tokens ($value) {
     my $class = ref($self) || $self;
     
-    # new token without modification
+    # only single dot becomes dot token, everything else is still a symbol
     return +(length($value) == 1 ? $class : 'Script::SXC::Token::Symbol')->new(value => $value);
 };
 
