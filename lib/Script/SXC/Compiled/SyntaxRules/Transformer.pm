@@ -54,7 +54,6 @@ has anon_variables => (
 method build_tree (Object $compiler, Object $env, Object $context) {
 
     my $tree = $self->transform_to_tree($compiler, $env, $self->template, $context, []);
-    #pp $tree;
     return $tree;
 }
 
@@ -62,13 +61,11 @@ method transform_to_tree (Object $compiler, Object $env, Object $item, Object $c
 
     # this item can be transformed
     if ($item->does(TransformationRole)) {
-
         return $item->transform_to_tree($self, $compiler, $env, $context, $coordinates);
     }
 
     # clone everything we can't transform
     else {
-
         return $item->meta->clone_object($item);
     }
 }
@@ -77,7 +74,6 @@ method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $e
 
     my $self = $class->new;
     $self->template($self->build_template($compiler, $env, $expr, $sr, $pattern, 0));
-    #pp $self->template;
     return $self;
 }
 

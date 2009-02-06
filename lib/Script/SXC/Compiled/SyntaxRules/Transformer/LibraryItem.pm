@@ -8,18 +8,20 @@ use namespace::clean -except => 'meta';
 extends 'Script::SXC::Tree::Symbol';
 
 method BUILD {
+
+    # set the symbol value to the name of the library item
     $self->value($self->name);
 }
 
 method transform_to_tree (Object $transformer, Object $compiler, Object $env, Object $context) {
 
-    #Class::MOP::load_class($self->library);
-    #return $self->library->new->get($self->name);
+    # we can substitute as the target symbol, so we just return ourselves
     return $self;
 }
 
 method find_associated_item (Object $compiler, Object $env) {
 
+    # load the library and return the item we represent
     Class::MOP::load_class($self->library);
     return $self->library->new->get($self->name . '');
 }

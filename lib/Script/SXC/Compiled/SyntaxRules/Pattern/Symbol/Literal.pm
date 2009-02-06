@@ -18,6 +18,7 @@ method match ($item, Object $ctx) {
            and $item->isa(SymbolClass)
            and $item eq $self->value;
 
+    # we have a match
     return $self;
 }
 

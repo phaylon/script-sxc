@@ -24,24 +24,24 @@ has iteration_level => (
 around transform_to_tree => sub ($next, $self, $transformer, $compiler, $env, $context, $coordinates) {
     $coordinates //= [];
 
+    # build a single expression out of the template if it is not ment to iterate
     unless ($self->is_iterative) {
         return $self->$next($transformer, $compiler, $env, $context, $coordinates);
     }
 
+    # calculate iteration parameters
     my $level = @$coordinates + 1;
     my $count = $context->get_iteration_count_on_level($level);
 
-    return unless $count;
-
-    my @coordinates = (@$coordinates, 0);
+    # iterate over the available indexes
     my @transformed;
-
     for my $index (0 .. $count - 1) {
 
-        $coordinates[-1] = $index;
-        push @transformed, $self->$next($transformer, $compiler, $env, $context, \@coordinates);
+        # adjust current coordinates and transform the tree with them
+        push @transformed, $self->$next($transformer, $compiler, $env, $context, [@$coordinates, $index]);
     }
 
+    # return transformed expressions
     return @transformed;
 };
 

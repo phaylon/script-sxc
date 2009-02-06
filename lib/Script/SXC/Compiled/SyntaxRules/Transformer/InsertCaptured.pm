@@ -13,6 +13,7 @@ has name => (
 
 method transform_to_tree (Object $transformer, Object $compiler, Object $env, Object $context, ArrayRef $coordinates) {
 
+    # fetch capture value from context
     return $context->get_capture_value($self->name, $coordinates);
 }
 

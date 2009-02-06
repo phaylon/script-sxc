@@ -10,6 +10,7 @@ extends 'Script::SXC::Compiled::SyntaxRules::Pattern::Symbol';
 
 method match ($value, Object $ctx, ArrayRef $coordinates) {
 
+    # remember the value we matched
     $ctx->set_capture_value($self->value, $coordinates, $value);
     return 1;
 }
