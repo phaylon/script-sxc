@@ -10,6 +10,7 @@ use Scalar::Util qw( refaddr );
 use constant SyntaxRulesClass    => 'Script::SXC::Compiled::SyntaxRules';
 use constant PatternClass        => join('::', SyntaxRulesClass, 'Pattern');
 use constant TransformerClass    => join('::', SyntaxRulesClass, 'Transformer');
+use constant ContextClass        => join('::', SyntaxRulesClass, 'Context');
 use constant LibraryItemClass    => join('::', TransformerClass, 'LibraryItem');
 use constant InsertCapturedClass => join('::', TransformerClass, 'InsertCaptured');
 use constant GeneratedClass      => join('::', TransformerClass, 'Generated');
@@ -69,6 +70,7 @@ sub T100_syntax_rules_api: Tests {
             my $template = $trans->template;
             isa_ok $template, ListClass;
             is $template->content_count, 3, 'template for first rule is list with three elements';
+            #exit;
 
             my ($add, $x, $y) = @{ $template->contents };
             isa_ok $add, LibraryItemClass;
@@ -132,16 +134,17 @@ sub T100_syntax_rules_api: Tests {
         {   say '# transforming first syntax-rule';
             my $ls = $self->sx_build_stream('(3 to 5)')->contents->[0];
 
-            my ($rule, $cap) = $sr->find_matching_rule([$ls]);
+            my ($rule, $ctx) = $sr->find_matching_rule([$ls]);
             isa_ok $rule, RuleClass;
-            is ref($cap), 'HASH', 'captures result is a hash reference';
-            ok exists($cap->{x}), 'capture hash reference contains first capture name';
-            ok exists($cap->{y}), 'capture hash reference contains second capture name';
-            isa_ok $cap->{x}, NumberClass;
-            isa_ok $cap->{y}, NumberClass;
+            isa_ok $ctx, ContextClass, 'match result is context object';
+            ok $ctx->has_capture_store_for('x'), 'captures contain first capture name';
+            ok $ctx->has_capture_store_for('y'), 'captures contain second capture name';
+            isa_ok $ctx->get_capture_store_for('x'), NumberClass;
+            isa_ok $ctx->get_capture_store_for('y'), NumberClass;
 
-            my $tree = $rule->build_tree($self->compiler, $self->compiler->top_environment, $cap);
+            my $tree = $rule->build_tree($self->compiler, $self->compiler->top_environment, $ctx);
             isa_ok $tree, ListClass;
+#            exit;
             is $tree->content_count, 3, 'transformed expression has correct number of items';
 
             my ($add, $x, $y) = @{ $tree->contents };

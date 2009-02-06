@@ -2,15 +2,15 @@ package Script::SXC::Compiled::SyntaxRules::Pattern::Symbol::Capture;
 use 5.010;
 use Moose;
 use MooseX::Method::Signatures;
+use MooseX::Types::Moose    qw( Bool );
 
 use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Compiled::SyntaxRules::Pattern::Symbol';
 
-method match ($value, HashRef $captures) {
+method match ($value, Object $ctx, ArrayRef $coordinates) {
 
-    $captures->{ $self->value } = $value;
-#    say 'capture ', $self->value, ' with value ', $value;
+    $ctx->set_capture_value($self->value, $coordinates, $value);
     return 1;
 }
 

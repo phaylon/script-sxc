@@ -1,13 +1,16 @@
 package Script::SXC::Compiled::SyntaxRules::Transformer;
 use 5.010;
 use Moose;
+use Moose::Util             qw( get_all_attribute_values );
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose    qw( Object HashRef );
 
 use constant InsertCapturedClass => 'Script::SXC::Compiled::SyntaxRules::Transformer::InsertCaptured';
 use constant LibraryItemClass    => 'Script::SXC::Compiled::SyntaxRules::Transformer::LibraryItem';
 use constant GeneratedClass      => 'Script::SXC::Compiled::SyntaxRules::Transformer::Generated';
+use constant ContainerClass      => 'Script::SXC::Compiled::SyntaxRules::Transformer::Container';
 use constant TransformationRole  => 'Script::SXC::Compiled::SyntaxRules::Transformer::Transformation';
+use constant IterationRole       => 'Script::SXC::Compiled::SyntaxRules::Transformer::Iteration';
 use constant ListClass           => 'Script::SXC::Tree::List';
 use constant SymbolClass         => 'Script::SXC::Tree::Symbol';
 use constant ContainerRole       => 'Script::SXC::Tree::Container';
@@ -18,11 +21,12 @@ use Script::SXC::lazyload
     [GeneratedClass,        'Generated'],
     [VariableClass,         'Variable'],
     [InsertCapturedClass,   'InsertCaptured'],
+    [ContainerClass,        'Container'],
     [LibraryItemClass,      'LibraryItem'],
     [ListClass,             'ListItem'],
     [SymbolClass,           'SymbolItem'];
 
-use List::MoreUtils qw( any );
+use List::MoreUtils qw( any first_value );
 use Data::Dump      qw( pp );
 
 use namespace::clean -except => 'meta';
@@ -47,27 +51,22 @@ has anon_variables => (
     },
 );
 
-method build_tree (Object $compiler, Object $env, HashRef $captures) {
+method build_tree (Object $compiler, Object $env, Object $context) {
 
-    my $tree = $self->transform_to_tree($compiler, $env, $self->template, $captures);
-#    pp $tree;
+    my $tree = $self->transform_to_tree($compiler, $env, $self->template, $context, []);
+    #pp $tree;
     return $tree;
 }
 
-method transform_to_tree (Object $compiler, Object $env, Object $item, HashRef $captures) {
+method transform_to_tree (Object $compiler, Object $env, Object $item, Object $context, ArrayRef $coordinates) {
 
-    if ($item->does(ContainerRole)) {
+    # this item can be transformed
+    if ($item->does(TransformationRole)) {
 
-        return $item->meta->clone_object($item, contents => [
-            map { $self->transform_to_tree($compiler, $env, $_, $captures) } @{ $item->contents }
-        ]);
+        return $item->transform_to_tree($self, $compiler, $env, $context, $coordinates);
     }
 
-    elsif ($item->does(TransformationRole)) {
-
-        return $item->transform_to_tree($self, $compiler, $env, $captures);
-    }
-
+    # clone everything we can't transform
     else {
 
         return $item->meta->clone_object($item);
@@ -77,58 +76,110 @@ method transform_to_tree (Object $compiler, Object $env, Object $item, HashRef $
 method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $expr, Object $sr, Object $pattern) {
 
     my $self = $class->new;
-    $self->template($self->build_template($compiler, $env, $expr, $sr, $pattern));
+    $self->template($self->build_template($compiler, $env, $expr, $sr, $pattern, 0));
+    #pp $self->template;
     return $self;
 }
 
-method build_template (Object $compiler, Object $env, Object $expr, Object $sr, Object $pattern) {
+method build_container_template (Object $compiler, Object $env, Object $container, Object $sr, Object $pattern, Int $it_level) {
 
-    if ($expr->does(ContainerRole)) {
+    my @contents = @{ $container->contents };
+    my @templates;
 
-        return $expr->meta->clone_object($expr, contents => [
-            map { $self->build_template($compiler, $env, $_, $sr, $pattern) } @{ $expr->contents }
-        ]);
+    # turn all of the containers contents into templates
+    while (my $item = shift @contents) {
+        my $is_iterative;
+        
+        # make the pattern iterative if the next item is an ellipsis
+        if (@contents and $contents[0]->isa(SymbolClass) and $contents[0] eq '...') {
+            $is_iterative = shift @contents;
+        }
+
+        # build template of this subexpression
+        my $template = $self->build_template($compiler, $env, $item, $sr, $pattern, ($is_iterative ? ($it_level + 1) : $it_level));
+
+        # iterative templates
+        if ($is_iterative) {
+
+            # not everything can be used iteratively
+            unless ($template->does(IterationRole)) {
+                $container->throw_parse_error(invalid_syntax_ellipsis => "Invalid placement of ellipsis in template");
+            }
+
+            # set iterative properties
+            $template->is_iterative(1);
+            $template->iteration_level($it_level + 1);
+        }
+
+        push @templates, $template;
     }
+
+    # construct container object
+    return Container->new(
+        %{ get_all_attribute_values $container->meta, $container },
+        contents        => \@templates,
+        container_class => ref($container),
+    );
+}
+
+method build_capture_template (Object $compiler, Object $env, Object $expr, Object $sr, Object $pattern, Int $it_level) {
+    return InsertCaptured->new(name => $expr->value);
+}
+
+method build_generated_template (Object $compiler, Object $env, Object $expr, Object $sr, Object $pattern, Int $it_level) {
+
+    # return already created placeholder if one exists
+    return $self->get_anon_variable($expr->value)
+        if $self->has_anon_variable($expr->value);
+
+    # create a new generated placeholder
+    my $gensym = Generated->new_from_symbol($expr);
+    $self->set_anon_variable($expr->value, $gensym);
+
+    # return generated symbol
+    return $gensym;
+}
+
+method build_template (Object $compiler, Object $env, Object $expr, Object $sr, Object $pattern, Int $it_level) {
+
+    # expression is a container of some kind
+    if ($expr->does(ContainerRole)) {
+        return $self->build_container_template($compiler, $env, $expr, $sr, $pattern, $it_level);
+    }
+
+    # expression is a symbol
     elsif ($expr->isa(SymbolClass)) {
 
-        if (any { $expr eq $_ } @{ $pattern->captures }) {
-
-            return InsertCaptured->new(name => $expr->value);
+        # capture symbols are replaced with inserting placeholders
+        if (my $capture = $pattern->get_capture_object($expr->value)) {
+            return $self->build_capture_template($compiler, $env, $expr, $sr, $pattern, $it_level);
         }
-        elsif ($expr eq '.') {
 
+        # dots are taken literally
+        elsif ($expr eq '.') {
             return $expr;
         }
-        else {
 
-            unless ($env->find_env_for_variable($expr->value)) {
+        # this is an unknown symbol that must be replaced
+        elsif (not $env->find_env_for_variable($expr->value)) {
+            return $self->build_generated_template($compiler, $env, $expr, $sr, $pattern, $it_level);
+        }
 
-                if ($self->has_anon_variable($expr->value)) {
+        # resolve a known symbol
+        my $compiled = $expr->compile($compiler, $env);
 
-                    return $self->get_anon_variable($expr->value);
-                }
-                else {
+        # if this symbol comes from a library we have to put a placeholder in
+        if ($compiled->does(LocationRole)) {
+            return LibraryItem->new($compiled->library_location);
+        }
 
-                    my $anon = Generated->new_from_symbol($expr);
-                    #my $anon = Variable->new_anonymous('gensym_' . $expr->value);
-                    $self->set_anon_variable($expr->value, $anon);
-                    return $anon;
-                }
-            }
-
-            my $compiled = $expr->compile($compiler, $env);
-
-            if ($compiled->does(LocationRole)) {
-
-                return LibraryItem->new($compiled->library_location);
-            }
-            elsif ($compiled->isa(VariableClass)) {
-
-                return $compiled;
-            }
+        # variables can be passed through
+        elsif ($compiled->isa(VariableClass)) {
+            return $compiled;
         }
     }
 
+    # everything else
     return $expr;
 }
 

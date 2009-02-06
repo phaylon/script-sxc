@@ -4,6 +4,9 @@ use Moose;
 use MooseX::Method::Signatures;
 use MooseX::Types::Moose    qw( CodeRef Object );
 
+use Script::SXC::lazyload
+    'Script::SXC::Compiled::SyntaxRules::Context';
+
 use namespace::clean -except => 'meta';
 
 has pattern => (
@@ -26,10 +29,13 @@ has transformer => (
 
 method match (ArrayRef $exprs) {
 
-    my %capture_values;
-    my $is_match = $self->match_pattern($exprs, \%capture_values);
+    my $context = Context->new;
+    return $self->match_pattern($exprs, $context) ? $context : undef;
+
+#    my (%capture_values, @iteration_values);
+#    my $is_match = $self->match_pattern($exprs, \%capture_values, \@iteration_values);
 #    say 'captures ', join ', ', keys %capture_values;
-    return $is_match ? \%capture_values : undef;
+#    return $is_match ? \%capture_values : undef;
 }
 
 1;

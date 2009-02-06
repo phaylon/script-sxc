@@ -10,14 +10,14 @@ extends 'Script::SXC::Token::Symbol';
 with    'Script::SXC::Token::DirectTransform';
 
 method match_regex {
-    '.'
+    qr/\.+/
 };
 
 method build_tokens ($value) {
     my $class = ref($self) || $self;
     
     # new token without modification
-    return $class->new(value => $value);
+    return +(length($value) == 1 ? $class : 'Script::SXC::Token::Symbol')->new(value => $value);
 };
 
 method tree_item_class { 'Script::SXC::Tree::Dot' };

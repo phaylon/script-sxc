@@ -9,9 +9,9 @@ use Script::SXC::lazyload
 
 use Carp            qw( croak );
 use List::MoreUtils qw( any );
+use signatures;
 
 use CLASS;
-use signatures;
 use namespace::clean -except => 'meta';
 
 has value => (
@@ -25,14 +25,20 @@ before new => sub ($class) {
         if $class eq CLASS;
 };
 
-method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Object $sr, Object $pattern) {
+method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Object $sr, Object $pattern, Int $greed_level) {
 
+    # this is a literal symbol
     if (any { $symbol eq $_ } @{ $sr->literals }, '.') {
         return Literal->new(value => $symbol->value);
     }
 
+    # everything else is a capture
+    my $capture = Capture->new(value => $symbol->value);
+
     $pattern->add_capture($symbol);
-    return Capture->new(value => $symbol->value);
+    $pattern->set_capture_object($symbol->value, $capture);
+
+    return $capture;
 }
 
 1;

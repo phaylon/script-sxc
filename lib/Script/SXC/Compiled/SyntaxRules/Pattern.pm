@@ -1,12 +1,15 @@
 package Script::SXC::Compiled::SyntaxRules::Pattern;
+use 5.010;
 use Moose;
 use Moose::Util::TypeConstraints;
 use MooseX::AttributeHelpers;
 use MooseX::Method::Signatures;
-use MooseX::Types::Moose    qw( ArrayRef Object );
+use MooseX::Types::Moose    qw( HashRef ArrayRef Object );
 
 use constant SequenceMatchingRole   => 'Script::SXC::Compiled::SyntaxRules::Pattern::SequenceMatching';
 use constant ListClass              => 'Script::SXC::Tree::List';
+
+use Data::Dump qw( pp );
 
 use namespace::clean -except => 'meta';
 
@@ -23,10 +26,26 @@ has captures => (
     },
 );
 
+has capture_objects => (
+    metaclass       => 'Collection::Hash',
+    is              => 'rw',
+    isa             => HashRef[Object],
+    required        => 1,
+    default         => sub { {} },
+    provides        => {
+        'exists'        => 'has_capture',
+        'set'           => 'set_capture_object',
+        'get'           => 'get_capture_object',
+    },
+);
+
 method new_from_uncompiled (Str $class: Object $compiler, Object $env, ArrayRef $items, Object $sr) {
 
-    my $self = $class->new;
-    $self->items([ map { $class->transform($compiler, $env, $_, $sr, $self) } @$items ]);
+    my $self  = $class->new;
+    my @items = @$items;
+    my @transformed;
+
+    $self->items($class->transform_sequence($compiler, $env, $items, $sr, $self, 0));
 
     return $self;
 }

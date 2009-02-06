@@ -10,7 +10,7 @@ use namespace::clean -except => 'meta';
 
 extends 'Script::SXC::Compiled::SyntaxRules::Pattern::Symbol';
 
-method match ($item, HashRef $captures) {
+method match ($item, Object $ctx) {
 
     return undef
         unless blessed $item

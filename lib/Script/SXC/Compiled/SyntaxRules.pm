@@ -69,11 +69,11 @@ method find_matching_rule (ArrayRef $exprs) {
 method build_inliner {
     return method (Object $invocant: Object :$compiler, Object :$env, ArrayRef :$exprs, Object :$symbol, :$name) {
 
-        my ($rule, $captures) = $self->find_matching_rule($exprs);
+        my ($rule, $context) = $self->find_matching_rule($exprs);
         $symbol->throw_parse_error(invalid_syntax_form => "No matching syntax-rule found in $name")
             unless $rule;
 
-        return $rule->build_tree($compiler, $env, $captures)->compile($compiler, $env);
+        return $rule->build_tree($compiler, $env, $context)->compile($compiler, $env);
     };
 }
 

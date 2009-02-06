@@ -33,15 +33,13 @@ has alternate_reftype => (
     isa         => Str,
 );
 
-method match ($item, HashRef $captures) {
-#    say "item $item";
+method match ($item, Object $ctx, ArrayRef $coordinates = []) {
 
     my @checks = @{ $self->items };
     my @exprs;
-    
-#    say 'container class ', $self->container_class;
+
+    # only the same kind of container can match
     if (blessed($item) and $item->isa($self->container_class)) {
-#        say 'blessed';
         @exprs = @{ $item->contents };
     }
     elsif ($self->alternate_reftype and ref $item and ref $item eq $self->alternate_reftype) {
@@ -51,21 +49,46 @@ method match ($item, HashRef $captures) {
         return undef;
     }
 
+    # work your way through subpatterns
     while (my $subpattern = shift @checks) {
-#        say "subpattern $subpattern";
 
-        return undef
-            unless @exprs;
+        # greedy patterns act on no or all left over expressions
+        if ($subpattern->is_greedy) {
 
-        my $expr = shift @exprs;
+            # capture storage coordinates
+            my @coordinates = (@$coordinates, 0);
+            
+            # match every expression
+            for my $expr (@exprs) {
+                return undef
+                    unless $subpattern->match($expr, $ctx, \@coordinates);
 
-        return undef
-            unless $subpattern->match($expr, $captures);
+                # increase latest index in coordinates to next
+                $coordinates[-1]++;
+            }
+
+            return 1;
+        }
+
+        # not greedy, single pattern requires single expression
+        else {
+
+            # we ran out of expressions, no match
+            return undef
+                unless @exprs;
+
+            my $expr = shift @exprs;
+
+            return undef
+                unless $subpattern->match($expr, $ctx, $coordinates);
+        }
     }
 
+    # we ran out of subpatterns, no match
     return undef
         if @exprs;
 
+    # everything seems accounted for
     return 1;
 }
 

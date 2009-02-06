@@ -4,13 +4,10 @@ use MooseX::Method::Signatures;
 
 use namespace::clean -except => 'meta';
 
-method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $list, Object $sr, Object $pattern) {
+method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $list, Object $sr, Object $pattern, Int $greed_level) {
     return $class->new(
-        items => [ 
-            map  { $class->transform($compiler, $env, $_, $sr, $pattern) } 
-                @{ $list->contents } 
-        ],
-        container_class => ref($list),
+        container_class => ref($list), 
+        items           => $class->transform_sequence($compiler, $env, $list->contents, $sr, $pattern, $greed_level),
     );
 }
 

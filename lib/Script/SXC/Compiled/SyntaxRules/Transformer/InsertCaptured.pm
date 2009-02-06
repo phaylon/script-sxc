@@ -11,11 +11,12 @@ has name => (
     required    => 1,
 );
 
-method transform_to_tree (Object $transformer, Object $compiler, Object $env, HashRef $captures) {
+method transform_to_tree (Object $transformer, Object $compiler, Object $env, Object $context, ArrayRef $coordinates) {
 
-    return $captures->{ $self->name };
+    return $context->get_capture_value($self->name, $coordinates);
 }
 
 with 'Script::SXC::Compiled::SyntaxRules::Transformer::Transformation';
+with 'Script::SXC::Compiled::SyntaxRules::Transformer::Iteration';
 
 1;

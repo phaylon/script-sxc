@@ -11,7 +11,7 @@ method BUILD {
     $self->value($self->name);
 }
 
-method transform_to_tree (Object $transformer, Object $compiler, Object $env, HashRef $captures) {
+method transform_to_tree (Object $transformer, Object $compiler, Object $env, Object $context) {
 
     #Class::MOP::load_class($self->library);
     #return $self->library->new->get($self->name);
