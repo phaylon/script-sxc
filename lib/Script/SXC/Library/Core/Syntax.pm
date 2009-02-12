@@ -4,6 +4,7 @@ use Moose;
 use MooseX::Method::Signatures;
 
 use Script::SXC::lazyload
+    'Script::SXC::Compiled::SyntaxRules::Placeholder',
     'Script::SXC::Compiled::SyntaxRules';
 
 use constant SymbolClass         => 'Script::SXC::Tree::Symbol';
@@ -26,6 +27,10 @@ CLASS->add_inliner('define-syntax', via => method (:$compiler, :$env, :$name, :$
     my ($syn_name, $transformer) = @$exprs;
     $syn_name->throw_parse_error(invalid_syntax_variable => "$name expected a symbol as first argument")
         unless $syn_name->isa(SymbolClass);
+
+    # set a placeholder for recursive usage
+    my $placeholder = Placeholder->new_from_symbol($syn_name, $env);
+    $env->set_variable($syn_name->value, $placeholder);
 
     # compile transformer
     my $compiled_transformer = $transformer->compile($compiler, $compiler->top_environment);

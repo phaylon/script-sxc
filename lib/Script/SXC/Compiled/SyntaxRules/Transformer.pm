@@ -11,6 +11,7 @@ use constant GeneratedClass      => 'Script::SXC::Compiled::SyntaxRules::Transfo
 use constant ContainerClass      => 'Script::SXC::Compiled::SyntaxRules::Transformer::Container';
 use constant TransformationRole  => 'Script::SXC::Compiled::SyntaxRules::Transformer::Transformation';
 use constant IterationRole       => 'Script::SXC::Compiled::SyntaxRules::Transformer::Iteration';
+use constant PlaceholderClass    => 'Script::SXC::Compiled::SyntaxRules::Placeholder';
 use constant ListClass           => 'Script::SXC::Tree::List';
 use constant SymbolClass         => 'Script::SXC::Tree::Symbol';
 use constant ContainerRole       => 'Script::SXC::Tree::Container';
@@ -54,6 +55,7 @@ has anon_variables => (
 method build_tree (Object $compiler, Object $env, Object $context) {
 
     my $tree = $self->transform_to_tree($compiler, $env, $self->template, $context, []);
+#    pp $tree;
     return $tree;
 }
 
@@ -74,6 +76,7 @@ method new_from_uncompiled (Str $class: Object $compiler, Object $env, Object $e
 
     my $self = $class->new;
     $self->template($self->build_template($compiler, $env, $expr, $sr, $pattern, 0));
+#    pp $self->template;
     return $self;
 }
 
@@ -180,6 +183,11 @@ method build_template (Object $compiler, Object $env, Object $expr, Object $sr, 
         # if this symbol comes from a library we have to put a placeholder in
         if ($compiled->does(LocationRole)) {
             return LibraryItem->new($compiled->library_location);
+        }
+
+        # placeholder for self-references
+        if ($compiled->isa(PlaceholderClass)) {
+            return $compiled;
         }
 
         # variables can be passed through

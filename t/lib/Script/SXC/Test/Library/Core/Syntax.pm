@@ -417,4 +417,29 @@ sub T206_syntax_rules_ellipsis: Tests {
     }
 }
 
+sub T207_syntax_rules_recursion: Tests {
+    my $self = shift;
+
+    my $PRE = q#
+        (define-syntax foo
+          (syntax-rules ()
+            ((foo a b c d)
+             (+ a b c d))
+            ((foo a b c)
+             (foo a b c (++ c)))
+            ((foo a b)
+             (foo a b (++ b)))
+            ((foo a)
+             (foo a (++ a)))
+            ((foo)
+             (foo 1))))
+    #;
+
+    is_deeply $self->run($PRE, '(foo 1 2 3 4)'), 10, 'non recursive use of recursive syntax templates';
+    is_deeply $self->run($PRE, '(foo 1 2 3)'), 10, 'single level recursion';
+    is_deeply $self->run($PRE, '(foo 1 2)'), 10, 'two level recursion';
+    is_deeply $self->run($PRE, '(foo 1)'), 10, 'three level recursion';
+    is_deeply $self->run($PRE, '(foo)'), 10, 'four level recursion without any arguments';
+}
+
 1;
