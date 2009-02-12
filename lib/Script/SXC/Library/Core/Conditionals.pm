@@ -164,4 +164,6 @@ my $TransformConditions = method (Object :$compiler, Object :$env, ArrayRef :$ex
 
 CLASS->add_inliner('cond', via => sub { $TransformConditions->(@_) });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

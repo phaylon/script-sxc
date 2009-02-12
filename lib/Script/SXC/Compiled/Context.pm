@@ -32,4 +32,6 @@ method render {
     return sprintf $Template{ $self->type }, $self->render_expression;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

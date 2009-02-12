@@ -17,4 +17,6 @@ method match ($value, Object $ctx, ArrayRef $coordinates) {
 
 with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

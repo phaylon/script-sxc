@@ -26,4 +26,6 @@ with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
 
 has '+allow_greedy' => (default => 0);
 
+__PACKAGE__->meta->make_immutable;
+
 1;

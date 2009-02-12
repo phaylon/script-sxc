@@ -37,4 +37,6 @@ CLASS->add_inliner('goto', via => method (Object :$compiler!, Object :$env!, Arr
     );
 });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

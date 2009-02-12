@@ -48,4 +48,6 @@ method transform_to_tree (Object $transformer, Object $compiler, Object $env, Ob
 
 with 'Script::SXC::Compiled::SyntaxRules::Transformer::Transformation';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

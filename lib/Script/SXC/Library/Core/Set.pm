@@ -69,4 +69,6 @@ CLASS->add_inliner('set!', via => method (Object :$compiler!, Object :$env!, Str
     return $env->build_modification($var, $expr, original_var => $original_var);
 });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

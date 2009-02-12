@@ -9,4 +9,6 @@ method singleton {
     state $singleton = $self->new;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

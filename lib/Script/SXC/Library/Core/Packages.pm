@@ -104,4 +104,6 @@ CLASS->add_inliner('define-package',
     },
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

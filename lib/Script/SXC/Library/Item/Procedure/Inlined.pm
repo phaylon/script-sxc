@@ -39,4 +39,6 @@ method render {
         $deparser->coderef2text($self->firstclass);
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

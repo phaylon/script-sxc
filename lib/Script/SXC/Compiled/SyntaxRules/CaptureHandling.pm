@@ -30,4 +30,6 @@ method get_capture_value (ArrayRef $captures, ArrayRef $coordinates) {
     return apply_at($captures, $coordinates, sub ($store) { $$store });
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

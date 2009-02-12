@@ -20,10 +20,10 @@ has value => (
     required    => 1,
 );
 
-before new => sub ($class) { 
-    croak "base class $class cannot be instantiated directly"
-        if $class eq CLASS;
-};
+#before new => sub ($class) { 
+#    croak "base class $class cannot be instantiated directly"
+#        if $class eq CLASS;
+#};
 
 method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Object $sr, Object $pattern, Int $greed_level) {
 
@@ -47,5 +47,7 @@ method new_from_uncompiled (Object $compiler, Object $env, Object $symbol, Objec
 
     return $capture;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

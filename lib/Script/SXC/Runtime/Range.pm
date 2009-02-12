@@ -51,4 +51,6 @@ method to_iterator {
     );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

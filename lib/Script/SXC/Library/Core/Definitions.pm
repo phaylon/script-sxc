@@ -101,4 +101,6 @@ CLASS->add_inliner('define', via => method (Object :$compiler!, Object :$env!, A
     $exprs->[0]->throw_parse_error(invalid_definition_target => "First argument to $name must be list or symbol");
 });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -29,4 +29,6 @@ for my $symbol_name (qw( say print )) {
     );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

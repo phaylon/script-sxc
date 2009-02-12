@@ -96,4 +96,6 @@ CLASS->add_procedure('rcurry',
     }),
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

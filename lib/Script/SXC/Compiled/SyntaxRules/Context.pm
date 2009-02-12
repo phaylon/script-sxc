@@ -124,4 +124,6 @@ method get_capture_value (Str $name, ArrayRef $coordinates) {
     }
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

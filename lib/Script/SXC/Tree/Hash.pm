@@ -41,4 +41,6 @@ method compile (Object $compiler!, Object $env!) {
     );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

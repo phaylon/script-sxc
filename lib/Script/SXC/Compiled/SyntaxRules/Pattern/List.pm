@@ -18,4 +18,6 @@ with 'Script::SXC::Compiled::SyntaxRules::Pattern::Matching';
 
 has '+alternate_reftype' => (default => 'ARRAY');
 
+__PACKAGE__->meta->make_immutable;
+
 1;

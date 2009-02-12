@@ -46,4 +46,6 @@ CLASS->add_inliner('values->hash', via => method (Object :$compiler!, Object :$e
     return $hs->compile($compiler, $env, return_type => 'hash');
 });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

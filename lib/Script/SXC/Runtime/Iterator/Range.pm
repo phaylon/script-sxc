@@ -88,4 +88,6 @@ method next_step {
 
 with 'Script::SXC::Runtime::Iteration';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

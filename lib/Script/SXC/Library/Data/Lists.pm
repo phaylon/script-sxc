@@ -707,4 +707,6 @@ CLASS->add_procedure('zip',
     },
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -45,4 +45,6 @@ CLASS->add_inliner('syntax-rules', via => method (:$compiler, :$env, :$name, :$e
     return SyntaxRules->new_from_uncompiled($compiler, $env, $literals, \@rules, $symbol, $name);
 });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

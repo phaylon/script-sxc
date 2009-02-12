@@ -29,4 +29,6 @@ method find_associated_item (Object $compiler, Object $env) {
 with 'Script::SXC::Library::Item::Location';
 with 'Script::SXC::Compiled::SyntaxRules::Transformer::Transformation';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

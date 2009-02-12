@@ -34,4 +34,6 @@ method match (ArrayRef $exprs) {
     return $self->match_pattern($exprs, $context) ? $context : undef;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

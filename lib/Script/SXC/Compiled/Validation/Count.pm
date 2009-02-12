@@ -35,4 +35,6 @@ method build_default_exception_type { 'invalid_argument_count' }
 
 with 'Script::SXC::Compiled::Validation';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -167,4 +167,6 @@ CLASS->add_procedure('~~',
 
 =cut
 
+__PACKAGE__->meta->make_immutable;
+
 1;

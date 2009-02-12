@@ -156,4 +156,6 @@ CLASS->add_procedure('hash?',
     inliner     => CLASS->build_inline_reftest_operator('HASH'),
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

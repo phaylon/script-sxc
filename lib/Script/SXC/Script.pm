@@ -6,4 +6,6 @@ use namespace::clean -except => 'meta';
 
 extends 'MooseX::App::Cmd';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

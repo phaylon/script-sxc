@@ -66,4 +66,6 @@ CLASS->add_procedure('current-datetime',
     },
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

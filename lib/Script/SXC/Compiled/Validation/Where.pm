@@ -12,4 +12,6 @@ method build_default_exception_type { 'invalid_argument' }
 
 with 'Script::SXC::Compiled::Validation';
 
+__PACKAGE__->meta->make_immutable;
+
 1;

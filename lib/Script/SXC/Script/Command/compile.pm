@@ -56,4 +56,6 @@ method run (HashRef $options, ArrayRef $arguments) {
     say $compiled_body;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

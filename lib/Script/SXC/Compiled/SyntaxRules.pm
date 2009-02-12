@@ -170,4 +170,6 @@ method build_pattern (Object $compiler, Object $env, Object $pattern) {
     return Pattern->new_from_uncompiled($compiler, $env, \@pattern_expressions, $self);
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -50,4 +50,6 @@ CLASS->add_inliner('begin',
     },
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

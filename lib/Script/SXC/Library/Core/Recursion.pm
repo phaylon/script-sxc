@@ -75,4 +75,6 @@ CLASS->add_inliner('recurse', via => method
     return $recurse->compile($compiler, $env, optimize_tailcalls => $optimize_tailcalls);
 });
 
+__PACKAGE__->meta->make_immutable;
+
 1;

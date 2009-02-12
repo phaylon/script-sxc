@@ -122,4 +122,6 @@ CLASS->add_procedure('does?',
     inliner     => CLASS->build_inline_bool_call('does', string_args => 1),
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -47,4 +47,6 @@ method run_compiled_file ($filename) {
     exec $^X, $filename;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

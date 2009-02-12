@@ -93,4 +93,6 @@ CLASS->add_procedure('regex?',
     inliner     => CLASS->build_inline_reftest_operator('Regexp'),
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

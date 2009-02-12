@@ -192,4 +192,6 @@ method build_template (Object $compiler, Object $env, Object $expr, Object $sr, 
     return $expr;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

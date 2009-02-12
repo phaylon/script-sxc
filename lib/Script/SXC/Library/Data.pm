@@ -349,4 +349,6 @@ CLASS->add_procedure('copy',
 #   (refaddr foo!)
 #
 
+__PACKAGE__->meta->make_immutable;
+
 1;

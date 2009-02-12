@@ -20,4 +20,6 @@ method try_typehinting_from {
     $self->original->typehint(undef);
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

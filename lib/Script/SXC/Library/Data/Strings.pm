@@ -147,4 +147,6 @@ CLASS->add_procedure('sprintf',
     },
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -221,4 +221,6 @@ for my $let ('let*', 'let-rec') {
     });
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

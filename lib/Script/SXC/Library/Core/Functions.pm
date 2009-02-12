@@ -86,4 +86,6 @@ for my $arrow_name (qw( -> )) {
     });
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

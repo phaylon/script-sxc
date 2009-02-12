@@ -7,4 +7,6 @@ extends 'Script::SXC::Compiled::SyntaxRules::Pattern::List';
 
 has '+alternate_reftype' => (default => 'HASH');
 
+__PACKAGE__->meta->make_immutable;
+
 1;

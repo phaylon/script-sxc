@@ -225,4 +225,6 @@ CLASS->add_procedure('min',
     inliner     => CLASS->build_direct_inliner('List::Util', 'min', min => 1),
 );
 
+__PACKAGE__->meta->make_immutable;
+
 1;

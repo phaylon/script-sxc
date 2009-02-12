@@ -51,4 +51,6 @@ method default_prefix { 'Info' }
 
 method default_handle { *STDOUT{IO} }
 
+__PACKAGE__->meta->make_immutable;
+
 1;
