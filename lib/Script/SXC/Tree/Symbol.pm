@@ -53,6 +53,7 @@ method compile (Object $compiler, Object $env, Bool :$fc_inline_optimise?) {
 }
 
 method quoted (Object $compiler!, Object $env!) {
+    $compiler->add_required_package(RuntimeSymbol);
 
     # build compiled value
     return CompiledValue->new(content => sprintf '%s->new(value => %s)', RuntimeSymbol, pp $self->value);

@@ -23,6 +23,7 @@ test_requires   'Method::Signatures';
 test_requires   'Perl::Tidy';
 test_requires   'Scalar::Util';
 test_requires   'Sub::Exporter';
+test_requires   'Sub::Information';
 test_requires   'aliased';
 
 requires        'aliased';
@@ -57,6 +58,7 @@ requires        'Perl::Tidy',                   '20071205';
 requires        'signatures',                   '0.02';
 requires        'Sub::Exporter',                '0.979';
 requires        'Sub::Install',                 '0.924';
+requires        'Sub::Name',                    '0.04';
 requires        'Scalar::Util',                 '1.19';
 requires        'Term::ReadLine',               '1.03';
 requires        'Time::HiRes',                  '1.9711';
