@@ -92,7 +92,7 @@ method build_firstclass_equality_operator (Str $operator!, CodeRef $test!) {
     }, runtime_req => ['Validation'], runtime_lex => { '$operator' => $operator, '$test' => $test };
 }
 
-method build_direct_inliner ($lib: Str $package!, Str $name!, Int :$min?, Int :$max?, Str :$typehint?) {
+method build_direct_inliner ($lib: Str $package!, Str $subname!, Int :$min?, Int :$max?, Str :$typehint?) {
     return method (Object :$compiler!, Object :$env!, ArrayRef :$exprs!, :$error_cb!, :$name!, :$symbol!) {
         $lib->check_arg_count(
             $error_cb, $name, $exprs,
@@ -108,7 +108,7 @@ method build_direct_inliner ($lib: Str $package!, Str $name!, Int :$min?, Int :$
                 $symbol->source_description,
             ),
             $package,
-            $name,
+            $subname,
             join ', ', map { $_->compile($compiler, $env)->render } @$exprs,
         );
     };

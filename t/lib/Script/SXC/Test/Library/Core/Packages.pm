@@ -46,7 +46,7 @@ sub T110_define_package_exports: Tests {
     #);
 
     my $package = 'Foo::Bar::D::Consumer' . $PackageCounter++;
-    diag "creating test package $package";
+#    diag "creating test package $package";
     eval qq#
         package ${package};
         Foo::Bar::D->import(qw( foo bar ));

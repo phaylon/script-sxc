@@ -22,6 +22,15 @@ with 'Script::SXC::SourcePosition';
 has name => (
     is          => 'rw',
     isa         => Str,
+    required    => 1,
+);
+
+has filename => (
+    is          => 'rw',
+    isa         => Str,
+    required    => 1,
+    lazy        => 1,
+    default     => sub { Class::Inspector->filename($_[0]->name) },
 );
 
 has version_expression => (
@@ -47,19 +56,19 @@ has environment => (
 
 method render {
 
-    # fake package file name
-    my $filename = Class::Inspector->filename($self->name);
-
     # build package body
     return sprintf '(do { package %s; $INC{%s} ||= %s; %s })',
         $self->name,
-        pp($filename),
+        pp($self->filename),
         pp($self->source_description),
         join('; ',
-            $self->render_version,
-            $self->render_exports,
+            $self->render_body_parts,
             pp($self->name),
         );
+}
+
+method render_body_parts {
+    return( $self->render_version, $self->render_exports );
 }
 
 method render_exports {

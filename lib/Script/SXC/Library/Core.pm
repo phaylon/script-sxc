@@ -12,9 +12,11 @@ extends 'Script::SXC::Library';
 
 CLASS->add_delegated_items({
 
-    'Script::SXC::Library::Core::Operators'     => [qw( or and err def not ~~ )],
+    'Script::SXC::Library::Core::Operators'     
+        => [qw( or and err def not ~~ )],
 
-    'Script::SXC::Library::Core::Sequences'     => [qw( begin )],
+    'Script::SXC::Library::Core::Sequences'     
+        => [qw( begin )],
 
     'Script::SXC::Library::Core::Conditionals'  
         => [qw( if unless cond )],
@@ -25,20 +27,26 @@ CLASS->add_delegated_items({
     'Script::SXC::Library::Core::Let'           
         => [qw( let let* let-rec given )],
 
-    'Script::SXC::Library::Core::Set'           => [qw( set! )],
+    'Script::SXC::Library::Core::Set'           
+        => [qw( set! )],
 
-    'Script::SXC::Library::Core::Quoting'       => [qw( quote quasiquote unquote unquote-splicing )],
+    'Script::SXC::Library::Core::Quoting'       
+        => [qw( quote quasiquote unquote unquote-splicing )],
 
-    'Script::SXC::Library::Core::Goto'          => [qw( goto )],
+    'Script::SXC::Library::Core::Goto'          
+        => [qw( goto )],
 
-    'Script::SXC::Library::Core::Definitions'   => [qw( define )],
+    'Script::SXC::Library::Core::Definitions'   
+        => [qw( define )],
 
-    'Script::SXC::Library::Core::Contexts'      => [qw( values->list values->hash )],
+    'Script::SXC::Library::Core::Contexts'      
+        => [qw( values->list values->hash )],
 
     'Script::SXC::Library::Core::Apply'         
         => [qw( apply apply! )],
 
-    'Script::SXC::Library::Core::Recursion'     => [qw( recurse )],
+    'Script::SXC::Library::Core::Recursion'     
+        => [qw( recurse )],
 
     'Script::SXC::Library::Core::DateTime'      
         => [qw( current-datetime current-timestamp sleep usleep )],
@@ -56,6 +64,9 @@ CLASS->add_delegated_items({
 
     'Script::SXC::Library::Core::Syntax'
         => [qw( define-syntax syntax-rules )],
+
+    'Script::SXC::Library::Core::OO'
+        => [qw( define-class class-of )],
 });
 
 CLASS->add_inliner('builtin', via => method (:$compiler!, :$env!, :$name!, :$exprs!, :$error_cb!) {
