@@ -1,7 +1,9 @@
 package Script::SXC::Compiled::Class;
 use 5.010;
 use Moose;
-use MooseX::Types::Moose    qw( ArrayRef Object Str HashRef );
+use Moose::Util::TypeConstraints;
+use MooseX::Types::Moose        qw( ArrayRef Object Str HashRef );
+use MooseX::Types::Structured   qw( Tuple );
 use MooseX::AttributeHelpers;
 use MooseX::Method::Signatures;
 
@@ -46,20 +48,51 @@ has method_expressions => (
     },
 );
 
+has method_modifier_expressions => (
+    metaclass   => 'Collection::Array',
+    is          => 'rw',
+    isa         => ArrayRef[Tuple[Str, Object, Str]],
+    default     => sub { [] },
+    required    => 1,
+    provides    => {
+        'push'      => 'add_to_method_modifier_expressions',
+        'count'     => 'method_modifier_expression_count',
+    },
+);
+
 method render {
 
     return sprintf(
-        'do { Moose::Meta::Class->create(%s, %s); $INC{%s} ||= %s; %s }',
+        'do { Moose::Meta::Class->create(%s, %s); %s; $INC{%s} ||= %s; %s }',
         pp($self->name),
         join(', ',
             $self->render_version,
             $self->render_superclass_expressions,
             $self->render_method_expressions,
         ),
+        join('; ',
+            $self->render_method_modifier_expressions,
+        ),
         pp($self->filename),
         pp($self->source_description),
         pp($self->name),
     );
+}
+
+method render_method_modifier_expressions {
+
+    return unless $self->method_modifier_expression_count;
+
+    return map {
+        my ($category, $method, $body) = @$_;
+        sprintf(
+            '%s->meta->add_%s_method_modifier(%s, %s)',
+            pp($self->name),
+            $category,
+            pp($method->value),
+            $body,
+        );
+    } @{ $self->method_modifier_expressions };
 }
 
 method render_version {
@@ -88,21 +121,17 @@ method render_superclass_expressions {
     return sprintf 'superclasses => [%s]', join ', ', @superclasses;
 }
 
-method _populate_with_method_option (Object $compiler, Object $env, HashRef $attrs, Str $package, ArrayRef $args, $option, $symbol) {
-    my $name = $symbol->value;
-
-    $symbol->throw_parse_error(invalid_method_options => "Method specification in $name expects name, signature and body")
-        unless @$args >= 3;
-
-    my ($method, $signature, @body) = @$args;
+my $TransformLambda = sub ($name, $option, $method, $signature, $additional, @body) {
 
     $method->throw_parse_error(invalid_method_name => "Method name in $name must be a symbol")
         unless $method->isa(SymbolClass);
 
+    my @additional = map { $signature->new_item_with_source(Symbol => { value => $_ }) } @$additional;
+
     if ($signature->isa(ListClass)) {
         $signature = $signature->new_item_with_source(List => { 
             contents => [
-                $signature->new_item_with_source(Symbol => { value => 'self' }),
+                @additional,
                 @{ $signature->contents },
             ],
         });
@@ -110,8 +139,8 @@ method _populate_with_method_option (Object $compiler, Object $env, HashRef $att
     elsif ($signature->isa(SymbolClass)) {
         $signature = $signature->new_item_with_source(List => {
             contents => [
-                $signature->new_item_with_source(Symbol => { value => 'self' }),
-                $signature->new_item_with_source(Dot    => { value => '.' }),
+                @additional,
+                $signature->new_item_with_source(Dot => { value => '.' }),
                 $signature,
             ],
         });
@@ -120,13 +149,63 @@ method _populate_with_method_option (Object $compiler, Object $env, HashRef $att
         $signature->throw_parse_error(invalid_method_signature => "Method signature in $name must be symbol or list");
     }
 
-    $attrs->{method_expressions}{ $method->value } = $option->new_item_with_source(List => {
+    return $option->new_item_with_source(List => {
         contents => [
             $option->new_item_with_source(Builtin => { value => 'lambda' }),
             $signature,
             @body,
         ],
-    })->compile($compiler, $env)->render;
+    });
+};
+
+method _populate_with_around_option (Object $compiler, Object $env, HashRef $attrs, Str $package, ArrayRef $args, $option, $symbol) {
+    my $name = $symbol->value;
+    my $modi = $option->value;
+
+    $symbol->throw_parse_error(invalid_method_options => "$modi method modifier specification in $name expects name, signature and body")
+        unless @$args >= 3;
+
+    my ($method, $signature, @body) = @$args;
+    push @{ $attrs->{method_modifier_expressions} },
+        [ $modi, 
+          $method,
+          $TransformLambda->($name, $option, $method, $signature, [qw( next self )], @body)
+            ->compile($compiler, $env)
+            ->render,
+        ];
+}
+
+method _populate_default_method_modifier ($compiler, $env, $attrs, $package, $args, $option, $symbol) {
+    my $name = $symbol->value;
+    my $modi = $option->value;
+
+    $symbol->throw_parse_error(invalid_method_options => "$modi method modifier specification in $name expects name, signature and body")
+        unless @$args >= 3;
+
+    my ($method, $signature, @body) = @$args;
+    push @{ $attrs->{method_modifier_expressions} },
+        [ $modi, 
+          $method,
+          $TransformLambda->($name, $option, $method, $signature, [qw( self )], @body)
+            ->compile($compiler, $env)
+            ->render,
+        ];
+}
+
+sub _populate_with_after_option { (shift)->_populate_default_method_modifier(@_) }
+sub _populate_with_before_option { (shift)->_populate_default_method_modifier(@_) }
+
+method _populate_with_method_option (Object $compiler, Object $env, HashRef $attrs, Str $package, ArrayRef $args, $option, $symbol) {
+    my $name = $symbol->value;
+
+    $symbol->throw_parse_error(invalid_method_options => "Method specification in $name expects name, signature and body")
+        unless @$args >= 3;
+
+    my ($method, $signature, @body) = @$args;
+    $attrs->{method_expressions}{ $method->value } 
+      = $TransformLambda->($name, $option, $method, $signature, [qw( self )], @body)
+        ->compile($compiler, $env)
+        ->render;
 }
 
 method _populate_with_extends_option (Object $compiler, Object $env, HashRef $attrs, Str $package, ArrayRef $args, $option, $symbol) {

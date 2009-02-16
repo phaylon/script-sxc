@@ -102,4 +102,48 @@ sub T220_define_class_method: Tests {
     }
 }
 
+sub T230_define_class_method_modifiers: Tests {
+    my $self = shift;
+
+    {   my $parent = classname Bar::Baz::G::Parent;
+        my $child  = classname Bar::Baz::G::Child;
+
+        lives_ok { $self->run(qq#
+            (define stack ())
+            (define (add cat call)
+              (apply! stack 
+                (-> (append _ (list (list (string cat) call))))))
+            (define-class $parent
+              (method foo ls (add :foo (list self ls)) "foo")
+              (method bar ls (add :bar (list self ls)) "bar")
+              (method baz ls (add :baz (list self ls)) "baz")
+              (method get_stack () stack))
+            (define-class $child
+              (extends '$parent)
+              (before foo ls (add :before-foo (list self ls)))
+              (after  bar ls (add :after-bar  (list self ls)))
+              (around baz ls 
+                (add :around-baz (list self ls))
+                (apply next self ls)))
+        #) } 'method modifiers compile';
+        
+        my $obj = $child->new;
+        isa_ok $obj, $child;
+        isa_ok $obj, $parent;
+
+        is $obj->foo, 'foo', 'before method modifier dispatches to correct method';
+        is $obj->bar, 'bar', 'after method modifier dispatches to correct method';
+        is $obj->baz, 'baz', 'around method modifier dispatches to correct method';
+
+        is_deeply $obj->get_stack, [
+            ['before-foo',  [$obj, []]],
+            ['foo',         [$obj, []]],
+            ['bar',         [$obj, []]],
+            ['after-bar',   [$obj, []]],
+            ['around-baz',  [$obj, []]],
+            ['baz',         [$obj, []]],
+        ], 'method modifier call stack is correct';
+    }
+}
+
 1;
